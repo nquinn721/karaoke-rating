@@ -25,6 +25,12 @@ export class Show {
   @Column({ type: "json", nullable: true })
   queue: any[]; // Queue items for karaoke
 
+  @Column({ length: 100, nullable: true })
+  currentSinger: string; // Current performer
+
+  @Column({ length: 200, nullable: true })
+  currentSong: string; // Current song being performed
+
   @CreateDateColumn()
   createdAt: Date;
 

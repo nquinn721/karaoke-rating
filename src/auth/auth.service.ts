@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as crypto from 'crypto';
+import { Injectable } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import * as crypto from "crypto";
 
 export interface TokenPayload {
   userId: number;
@@ -17,7 +17,7 @@ export class AuthService {
       userId,
       username,
     };
-    
+
     // Generate a non-expiring JWT token
     return this.jwtService.sign(payload);
   }
@@ -31,6 +31,6 @@ export class AuthService {
   }
 
   generateSecureId(): string {
-    return crypto.randomBytes(32).toString('hex');
+    return crypto.randomBytes(32).toString("hex");
   }
 }

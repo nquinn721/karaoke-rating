@@ -22,61 +22,61 @@ export class ShowsController {
   constructor(private readonly showsService: ShowsService) {}
 
   @Post()
-  createShow(@Body() createShowDto: CreateShowDto): Show {
+  async createShow(@Body() createShowDto: CreateShowDto): Promise<Show> {
     return this.showsService.createShow(createShowDto);
   }
 
   @Get()
-  getAllShows(): Show[] {
+  async getAllShows(): Promise<Show[]> {
     return this.showsService.getAllShows();
   }
 
   @Get(":id")
-  getShow(@Param("id") id: string): Show | undefined {
+  async getShow(@Param("id") id: string): Promise<Show | undefined> {
     return this.showsService.getShow(id);
   }
 
   @Post("join")
-  joinShow(@Body() joinShowDto: JoinShowDto): Show | undefined {
+  async joinShow(@Body() joinShowDto: JoinShowDto): Promise<Show | undefined> {
     return this.showsService.joinShow(joinShowDto);
   }
 
   @Patch(":id/current-performer")
-  updateCurrentPerformer(
+  async updateCurrentPerformer(
     @Param("id") id: string,
     @Body() body: { singer: string; song: string }
-  ): Show | undefined {
+  ): Promise<Show | undefined> {
     return this.showsService.updateCurrentPerformer(id, body.singer, body.song);
   }
 
   @Post("rate")
-  ratePerformance(@Body() rateDto: RatePerformanceDto): Rating {
+  async ratePerformance(@Body() rateDto: RatePerformanceDto): Promise<Rating> {
     return this.showsService.ratePerformance(rateDto);
   }
 
   @Get(":id/ratings")
-  getShowRatings(@Param("id") id: string): Rating[] {
+  async getShowRatings(@Param("id") id: string): Promise<Rating[]> {
     return this.showsService.getShowRatings(id);
   }
 
   @Post(":id/queue")
-  addToQueue(
+  async addToQueue(
     @Param("id") id: string,
     @Body() item: QueueItem
-  ): Show | undefined {
+  ): Promise<Show | undefined> {
     return this.showsService.addToQueue(id, item);
   }
 
   @Post(":id/next")
-  nextPerformance(@Param("id") id: string): Show | undefined {
+  async nextPerformance(@Param("id") id: string): Promise<Show | undefined> {
     return this.showsService.advanceQueue(id);
   }
 
   @Delete(":id/queue/item")
-  removeQueueItem(
+  async removeQueueItem(
     @Param("id") id: string,
     @Body() body: { index: number }
-  ): Show | undefined {
+  ): Promise<Show | undefined> {
     return this.showsService.removeQueueItem(id, body.index);
   }
 

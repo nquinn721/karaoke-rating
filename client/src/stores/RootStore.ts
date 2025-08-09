@@ -1,4 +1,3 @@
-import { create } from "mobx-persist";
 import { BaseAPIStore } from "./BaseAPIStore";
 import { ChatStore } from "./ChatStore";
 import { FeedbackStore } from "./FeedbackStore";
@@ -8,11 +7,11 @@ import { AuthStore } from "./AuthStore";
 
 export class RootStore {
   baseAPI = new BaseAPIStore();
-  userStore = new UserStore();
+  authStore = new AuthStore();
+  userStore = new UserStore(this);
   showsStore = new ShowsStore(this.baseAPI);
   chatStore = new ChatStore(this.baseAPI);
   feedbackStore = new FeedbackStore();
-  authStore = new AuthStore();
 
   constructor() {
     console.log("RootStore initialized", {
@@ -26,11 +25,6 @@ export class RootStore {
   }
 }
 
-const hydrate = create({
-  storage: localStorage,
-  jsonify: true,
-});
-
 export const rootStore = new RootStore();
 
 console.log("Global rootStore created:", {
@@ -39,7 +33,4 @@ console.log("Global rootStore created:", {
   shows: rootStore.showsStore?.shows,
 });
 
-// Persist user store
-hydrate("user", rootStore.userStore).then(() => {
-  console.log("UserStore hydrated");
-});
+// No longer need to persist user store since we use AuthStore with server data

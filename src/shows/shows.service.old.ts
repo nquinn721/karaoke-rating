@@ -40,7 +40,7 @@ export class ShowsService {
     const showInterface: ShowInterface = {
       id: savedShow.id.toString(),
       name: savedShow.name,
-      venue: savedShow.venue as "karafun" | "excess" | "dj steve",
+      venue: savedShow.venue,
       participants: savedShow.participants || [],
       ratings: [],
       createdAt: savedShow.createdAt,
@@ -199,114 +199,77 @@ export class ShowsService {
 
     return this.getShow(showId);
   }
+      show.currentSong = next.song;
 
-  async ratePerformance(rateDto: RatePerformanceDto): Promise<RatingInterface> {
-    // Find the user by username to get their ID
-    let user = await this.userRepository.findOne({
-      where: { username: rateDto.ratedBy },
-    });
-
-    // Create user if doesn't exist
-    if (!user) {
-      user = this.userRepository.create({
-        username: rateDto.ratedBy,
-        isAdmin: false,
+      // Inform room subscribers
+      this.chatGateway.server.to(showId).emit("queueUpdated", {
+        showId,
+        queue: show.queue,
       });
-      user = await this.userRepository.save(user);
+      this.chatGateway.server.to(showId).emit("currentPerformerChanged", {
+        singer: next.singer,
+        song: next.song,
+      });
     }
 
-    const rating = this.ratingRepository.create({
-      score: rateDto.rating,
-      comment: rateDto.comment || "",
-      performerName: rateDto.singer,
-      songTitle: rateDto.song,
-      userId: user.id,
-      showId: parseInt(rateDto.showId),
-    });
+    // Also update overall shows list
+    this.chatGateway.server.emit("showsUpdated", this.getAllShows());
 
-    const savedRating = await this.ratingRepository.save(rating);
+    return show;
+  }
 
-    // Notify clients
-    this.chatGateway.server.to(rateDto.showId).emit("ratingAdded", {
-      rating: savedRating,
-    });
-
-    return {
-      id: savedRating.id.toString(),
-      comment: savedRating.comment,
-      ratedBy: rateDto.ratedBy,
+  ratePerformance(rateDto: RatePerformanceDto): Rating {
+    const rating: Rating = {
+      id: Math.random().toString(36).substr(2, 9),
+      showId: rateDto.showId,
       singer: rateDto.singer,
       song: rateDto.song,
-      rating: savedRating.score,
-      createdAt: savedRating.createdAt,
-      showId: rateDto.showId,
+      rating: rateDto.rating,
+      comment: rateDto.comment,
+      ratedBy: rateDto.ratedBy,
+      createdAt: new Date(),
     };
+
+    this.ratings.push(rating);
+
+    const show = this.shows.find((s) => s.id === rateDto.showId);
+    if (show) {
+      show.ratings.push(rating);
+    }
+
+    return rating;
   }
 
-  async getShowRatings(showId: string): Promise<RatingInterface[]> {
-    const ratings = await this.ratingRepository.find({
-      where: { showId: parseInt(showId) },
-      relations: ["user"],
-      order: { createdAt: "DESC" },
-    });
-
-    return ratings.map(rating => ({
-      id: rating.id.toString(),
-      rating: rating.score,
-      comment: rating.comment,
-      ratedBy: rating.user.username,
-      singer: rating.performerName,
-      song: rating.songTitle,
-      createdAt: rating.createdAt,
-      showId: showId,
-    }));
+  getShowRatings(showId: string): Rating[] {
+    return this.ratings.filter((rating) => rating.showId === showId);
   }
 
-  async removeQueueItem(showId: string, index: number): Promise<ShowInterface | undefined> {
-    const show = await this.showRepository.findOne({
-      where: { id: parseInt(showId) },
-    });
-
+  removeQueueItem(showId: string, index: number): Show | undefined {
+    const show = this.shows.find((s) => s.id === showId);
     if (!show) return undefined;
-
-    const queue = show.queue || [];
-    if (index >= 0 && index < queue.length) {
-      queue.splice(index, 1);
-      show.queue = queue;
-      await this.showRepository.save(show);
-
-      // Notify clients
+    if (!show.queue) show.queue = [];
+    if (index >= 0 && index < show.queue.length) {
+      show.queue.splice(index, 1);
       this.chatGateway.server.to(showId).emit("queueUpdated", {
         showId,
         queue: show.queue,
       });
     }
-
-    return this.getShow(showId);
+    return show;
   }
 
-  async removeQueueBySinger(showId: string, singer: string): Promise<ShowInterface | undefined> {
-    const show = await this.showRepository.findOne({
-      where: { id: parseInt(showId) },
-    });
-
+  removeQueueBySinger(showId: string, singer: string): Show | undefined {
+    const show = this.shows.find((s) => s.id === showId);
     if (!show) return undefined;
-
-    const queue = show.queue || [];
-    const initialLength = queue.length;
-    show.queue = queue.filter((item: any) => item.singer !== singer);
-    
-    // Only save and broadcast if something was removed
-    if (show.queue.length !== initialLength) {
-      await this.showRepository.save(show);
-
-      // Notify clients
+    if (!show.queue) show.queue = [];
+    const filtered = show.queue.filter((q) => q.singer !== singer);
+    if (filtered.length !== show.queue.length) {
+      show.queue = filtered;
       this.chatGateway.server.to(showId).emit("queueUpdated", {
         showId,
         queue: show.queue,
       });
     }
-
-    return this.getShow(showId);
+    return show;
   }
 }

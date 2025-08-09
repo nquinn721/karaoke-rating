@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable } from "mobx";
 
 export interface User {
   id: number;
@@ -26,9 +26,9 @@ export class AuthStore {
   }
 
   private loadFromStorage() {
-    const token = localStorage.getItem('auth_token');
-    const userData = localStorage.getItem('user_data');
-    
+    const token = localStorage.getItem("auth_token");
+    const userData = localStorage.getItem("user_data");
+
     if (token && userData) {
       try {
         this.authToken = token;
@@ -44,8 +44,8 @@ export class AuthStore {
 
   private saveToStorage() {
     if (this.authToken && this.user) {
-      localStorage.setItem('auth_token', this.authToken);
-      localStorage.setItem('user_data', JSON.stringify(this.user));
+      localStorage.setItem("auth_token", this.authToken);
+      localStorage.setItem("user_data", JSON.stringify(this.user));
     }
   }
 
@@ -53,22 +53,24 @@ export class AuthStore {
     this.user = null;
     this.authToken = null;
     this.isAuthenticated = false;
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user_data");
   }
 
-  async login(username: string): Promise<{ success: boolean; message?: string }> {
+  async login(
+    username: string
+  ): Promise<{ success: boolean; message?: string }> {
     if (!username.trim()) {
-      return { success: false, message: 'Username is required' };
+      return { success: false, message: "Username is required" };
     }
 
     this.isLoading = true;
-    
+
     try {
-      const response = await fetch('/api/users/login', {
-        method: 'POST',
+      const response = await fetch("/api/users/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ username: username.trim() }),
       });
@@ -80,17 +82,19 @@ export class AuthStore {
         this.authToken = data.authToken;
         this.isAuthenticated = true;
         this.saveToStorage();
-        
-        return { 
-          success: true, 
-          message: data.isNewUser ? 'Account created successfully!' : 'Welcome back!' 
+
+        return {
+          success: true,
+          message: data.isNewUser
+            ? "Account created successfully!"
+            : "Welcome back!",
         };
       } else {
-        return { success: false, message: 'Login failed' };
+        return { success: false, message: "Login failed" };
       }
     } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, message: 'Network error' };
+      console.error("Login error:", error);
+      return { success: false, message: "Network error" };
     } finally {
       this.isLoading = false;
     }
@@ -100,11 +104,11 @@ export class AuthStore {
     if (!this.authToken) return false;
 
     try {
-      const response = await fetch('/api/users/verify', {
-        method: 'POST',
+      const response = await fetch("/api/users/verify", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${this.authToken}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.authToken}`,
+          "Content-Type": "application/json",
         },
       });
 
@@ -119,7 +123,7 @@ export class AuthStore {
         return false;
       }
     } catch (error) {
-      console.error('Token verification error:', error);
+      console.error("Token verification error:", error);
       this.clearAuth();
       return false;
     }
@@ -129,27 +133,33 @@ export class AuthStore {
     this.clearAuth();
   }
 
-  async changeUsername(oldUsername: string, newUsername: string): Promise<{ success: boolean; message: string }> {
+  async changeUsername(
+    oldUsername: string,
+    newUsername: string
+  ): Promise<{ success: boolean; message: string }> {
     if (!newUsername.trim()) {
-      return { success: false, message: 'New username is required' };
+      return { success: false, message: "New username is required" };
     }
 
     if (oldUsername.trim() === newUsername.trim()) {
-      return { success: false, message: 'New username must be different from current username' };
+      return {
+        success: false,
+        message: "New username must be different from current username",
+      };
     }
 
     this.isLoading = true;
-    
+
     try {
-      const response = await fetch('/api/users/change-username', {
-        method: 'PUT',
+      const response = await fetch("/api/users/change-username", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.authToken}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.authToken}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           oldUsername: oldUsername.trim(),
-          newUsername: newUsername.trim() 
+          newUsername: newUsername.trim(),
         }),
       });
 
@@ -159,17 +169,20 @@ export class AuthStore {
         this.user = data.user;
         this.authToken = data.user.authToken;
         this.saveToStorage();
-        
-        return { 
-          success: true, 
-          message: 'Username changed successfully!' 
+
+        return {
+          success: true,
+          message: "Username changed successfully!",
         };
       } else {
-        return { success: false, message: data.message || 'Username change failed' };
+        return {
+          success: false,
+          message: data.message || "Username change failed",
+        };
       }
     } catch (error) {
-      console.error('Username change error:', error);
-      return { success: false, message: 'Network error' };
+      console.error("Username change error:", error);
+      return { success: false, message: "Network error" };
     } finally {
       this.isLoading = false;
     }
