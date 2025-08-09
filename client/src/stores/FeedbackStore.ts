@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeObservable, observable, action } from 'mobx';
 import { BaseAPIStore } from './BaseAPIStore';
 
 export interface Feedback {
@@ -25,7 +25,13 @@ export class FeedbackStore extends BaseAPIStore {
 
   constructor() {
     super();
-    makeAutoObservable(this);
+    makeObservable(this, {
+      feedbackList: observable,
+      isLoading: observable,
+      submitFeedback: action,
+      fetchUserFeedback: action,
+      fetchAllFeedback: action,
+    });
   }
 
   async submitFeedback(feedbackData: CreateFeedbackDto): Promise<void> {

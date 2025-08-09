@@ -140,7 +140,7 @@ const HomePage: React.FC = observer(() => {
         <Typography variant="h3" component="h1" color="primary">
           Karaoke Shows
         </Typography>
-        <UserMenu 
+        <UserMenu
           getUserColor={getUserColor}
           onUsernameChange={() => {
             setUsernameInput(userStore.username);
@@ -278,8 +278,7 @@ const HomePage: React.FC = observer(() => {
                       >
                         Join Show
                       </Button>
-                    )
-                    }
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
@@ -291,9 +290,9 @@ const HomePage: React.FC = observer(() => {
       <Fab
         color="primary"
         aria-label="add"
-        sx={{ 
-          position: "fixed", 
-          bottom: { xs: 20, sm: 16 }, 
+        sx={{
+          position: "fixed",
+          bottom: { xs: 20, sm: 16 },
           right: { xs: 20, sm: 16 },
           zIndex: 1000,
         }}

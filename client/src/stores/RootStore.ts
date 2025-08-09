@@ -1,9 +1,9 @@
 import { create } from "mobx-persist";
 import { BaseAPIStore } from "./BaseAPIStore";
 import { ChatStore } from "./ChatStore";
+import { FeedbackStore } from "./FeedbackStore";
 import { ShowsStore } from "./ShowsStore";
 import { UserStore } from "./UserStore";
-import { FeedbackStore } from "./FeedbackStore";
 
 export class RootStore {
   baseAPI = new BaseAPIStore();

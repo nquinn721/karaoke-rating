@@ -12,9 +12,9 @@ const App: React.FC = observer(() => {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <Container 
-        maxWidth="lg" 
-        sx={{ 
+      <Container
+        maxWidth="lg"
+        sx={{
           py: { xs: 2, sm: 3 },
           px: { xs: 2, sm: 3 },
         }}

@@ -245,13 +245,16 @@ export class ShowsStore {
 
   async addToQueue(showId: string, singer: string, song: string) {
     try {
-      const updated = await this.baseAPI.post<Show>(`/api/shows/${showId}/queue`, {
-        singer,
-        song,
-      });
+      const updated = await this.baseAPI.post<Show>(
+        `/api/shows/${showId}/queue`,
+        {
+          singer,
+          song,
+        }
+      );
       runInAction(() => {
         if (this.currentShow && this.currentShow.id === showId) {
-          this.currentShow.queue = updated.queue || [] as any;
+          this.currentShow.queue = updated.queue || ([] as any);
         }
         const index = this.shows.findIndex((s) => s.id === showId);
         if (index !== -1) this.shows[index] = updated;
@@ -267,12 +270,15 @@ export class ShowsStore {
 
   async nextPerformance(showId: string) {
     try {
-      const updated = await this.baseAPI.post<Show>(`/api/shows/${showId}/next`, {});
+      const updated = await this.baseAPI.post<Show>(
+        `/api/shows/${showId}/next`,
+        {}
+      );
       runInAction(() => {
         if (this.currentShow && this.currentShow.id === showId) {
           this.currentShow.currentSinger = updated.currentSinger;
           this.currentShow.currentSong = updated.currentSong;
-          this.currentShow.queue = updated.queue || [] as any;
+          this.currentShow.queue = updated.queue || ([] as any);
         }
         const index = this.shows.findIndex((s) => s.id === showId);
         if (index !== -1) this.shows[index] = updated;

@@ -66,6 +66,10 @@ const ShowPage: React.FC = observer(() => {
         comment,
         userStore.username
       );
+
+      // Auto-advance to next queued performance after a successful rating
+      await showsStore.nextPerformance(showsStore.currentShow.id);
+
       setRating(5);
       setComment("");
     } catch (error) {
@@ -137,10 +141,10 @@ const ShowPage: React.FC = observer(() => {
       >
         {/* Back button and show name */}
         <Box
-          sx={{ 
-            display: "flex", 
-            alignItems: "center", 
-            minWidth: 0, 
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            minWidth: 0,
             flex: 1,
             mr: 1,
           }}
