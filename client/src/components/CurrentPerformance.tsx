@@ -44,6 +44,8 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
 
     // Use autocomplete hook for song search
     const { suggestions, loading } = useAutocomplete(editSong, 500);
+    const { suggestions: queueSuggestions, loading: queueLoading } =
+      useAutocomplete(queueSong, 500);
 
     const show = showsStore.currentShow;
     const wsParticipants = chatStore.participantsByShow.get(showId) || [];
@@ -321,12 +323,71 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                   sx={{ minWidth: 180 }}
                 />
               )}
-              <TextField
+              <Autocomplete
+                fullWidth
+                freeSolo
+                options={queueSuggestions}
+                getOptionLabel={(option) =>
+                  typeof option === "string"
+                    ? option
+                    : `${option.title} - ${option.artist}`
+                }
+                inputValue={queueSong}
+                onInputChange={(_, newInputValue) =>
+                  setQueueSong(newInputValue)
+                }
+                onChange={(_, newValue) => {
+                  if (newValue && typeof newValue !== "string") {
+                    // Auto-populate singer if not already set and we found a matching artist
+                    if (!queueSinger) {
+                      setQueueSinger(newValue.artist);
+                    }
+                    setQueueSong(newValue.title);
+                  } else if (typeof newValue === "string") {
+                    setQueueSong(newValue);
+                  }
+                }}
+                loading={queueLoading}
                 size="small"
-                label="Song"
-                value={queueSong}
-                onChange={(e) => setQueueSong(e.target.value)}
                 sx={{ flex: 1, minWidth: 220 }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Song"
+                    size="small"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {queueLoading && (
+                            <CircularProgress color="inherit" size={16} />
+                          )}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props}>
+                    <Box sx={{ width: "100%" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: "bold", fontSize: "0.8rem" }}
+                      >
+                        {option.title}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ fontSize: "0.7rem" }}
+                      >
+                        by {option.artist}
+                        {option.year && ` (${option.year})`}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
               />
               <Button
                 variant="contained"

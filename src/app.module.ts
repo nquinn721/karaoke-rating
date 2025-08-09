@@ -4,8 +4,9 @@ import { join } from "path";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { ChatModule } from "./chat/chat.module";
-import { ShowsModule } from "./shows/shows.module";
 import { FeedbackModule } from "./feedback/feedback.module";
+import { MusicModule } from "./music/music.module";
+import { ShowsModule } from "./shows/shows.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { FeedbackModule } from "./feedback/feedback.module";
     ShowsModule,
     ChatModule,
     FeedbackModule,
+    MusicModule,
   ],
   controllers: [AppController],
   providers: [AppService],

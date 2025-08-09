@@ -2,10 +2,10 @@ import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
 import {
   CreateShowDto,
   JoinShowDto,
+  QueueItem,
   RatePerformanceDto,
   Rating,
   Show,
-  QueueItem,
 } from "./shows.interface";
 import { ShowsService } from "./shows.service";
 

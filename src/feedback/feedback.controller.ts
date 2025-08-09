@@ -1,32 +1,40 @@
-import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
-import { FeedbackService } from './feedback.service';
-import { CreateFeedbackDto, Feedback, UpdateFeedbackStatusDto } from './feedback.interface';
+import { Body, Controller, Get, Post, Put, Query } from "@nestjs/common";
+import {
+  CreateFeedbackDto,
+  Feedback,
+  UpdateFeedbackStatusDto,
+} from "./feedback.interface";
+import { FeedbackService } from "./feedback.service";
 
-@Controller('feedback')
+@Controller("api/feedback")
 export class FeedbackController {
   constructor(private readonly feedbackService: FeedbackService) {}
 
   @Post()
-  async createFeedback(@Body() createFeedbackDto: CreateFeedbackDto): Promise<Feedback> {
+  async createFeedback(
+    @Body() createFeedbackDto: CreateFeedbackDto
+  ): Promise<Feedback> {
     return this.feedbackService.createFeedback(createFeedbackDto);
   }
 
   @Get()
-  async getFeedback(@Query('username') username?: string): Promise<Feedback[]> {
+  async getFeedback(@Query("username") username?: string): Promise<Feedback[]> {
     if (username) {
       return this.feedbackService.getFeedbackByUsername(username);
     }
     return this.feedbackService.getAllFeedback();
   }
 
-  @Put('status')
-  async updateFeedbackStatus(@Body() updateDto: UpdateFeedbackStatusDto): Promise<Feedback> {
+  @Put("status")
+  async updateFeedbackStatus(
+    @Body() updateDto: UpdateFeedbackStatusDto
+  ): Promise<Feedback> {
     return this.feedbackService.updateFeedbackStatus(updateDto);
   }
 
-  @Post('init-db')
+  @Post("init-db")
   async initializeDatabase(): Promise<{ message: string }> {
     await this.feedbackService.initializeDatabase();
-    return { message: 'Database initialized successfully' };
+    return { message: "Database initialized successfully" };
   }
 }

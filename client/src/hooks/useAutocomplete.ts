@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { musicService, MusicSearchResult } from '../services/musicService';
+import musicService, { MusicSearchResult } from '../services/musicService';
 
 export interface UseAutocompleteResult {
   suggestions: MusicSearchResult[];

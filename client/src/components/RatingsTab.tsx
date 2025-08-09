@@ -1,7 +1,7 @@
 import {
   Star as StarIcon,
-  TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
+  TrendingUp as TrendingUpIcon,
 } from "@mui/icons-material";
 import {
   Avatar,
@@ -35,35 +35,41 @@ const RatingsTab: React.FC = observer(() => {
 
   // Calculate statistics
   const totalRatings = ratings.length;
-  const averageRating = totalRatings > 0 
-    ? (ratings.reduce((sum, r) => sum + r.rating, 0) / totalRatings).toFixed(1)
-    : "0.0";
+  const averageRating =
+    totalRatings > 0
+      ? (ratings.reduce((sum, r) => sum + r.rating, 0) / totalRatings).toFixed(
+          1
+        )
+      : "0.0";
 
   // Rating distribution (1-10 scale)
   const ratingDistribution = Array.from({ length: 10 }, (_, i) => {
     const rating = i + 1;
-    const count = ratings.filter(r => r.rating === rating).length;
+    const count = ratings.filter((r) => r.rating === rating).length;
     const percentage = totalRatings > 0 ? (count / totalRatings) * 100 : 0;
     return { rating, count, percentage };
   }).reverse(); // Show 10 to 1
 
   // Get unique performers with their average ratings
-  const performerStats = ratings.reduce((acc, rating) => {
-    const key = `${rating.singer}-${rating.song}`;
-    if (!acc[key]) {
-      acc[key] = {
-        singer: rating.singer,
-        song: rating.song,
-        ratings: [],
-        totalRating: 0,
-        count: 0,
-      };
-    }
-    acc[key].ratings.push(rating);
-    acc[key].totalRating += rating.rating;
-    acc[key].count += 1;
-    return acc;
-  }, {} as Record<string, any>);
+  const performerStats = ratings.reduce(
+    (acc, rating) => {
+      const key = `${rating.singer}-${rating.song}`;
+      if (!acc[key]) {
+        acc[key] = {
+          singer: rating.singer,
+          song: rating.song,
+          ratings: [],
+          totalRating: 0,
+          count: 0,
+        };
+      }
+      acc[key].ratings.push(rating);
+      acc[key].totalRating += rating.rating;
+      acc[key].count += 1;
+      return acc;
+    },
+    {} as Record<string, any>
+  );
 
   const performerList = Object.values(performerStats)
     .map((performer: any) => ({
@@ -81,8 +87,10 @@ const RatingsTab: React.FC = observer(() => {
 
   const getRatingIcon = (current: number, previous?: number) => {
     if (!previous) return null;
-    if (current > previous) return <TrendingUpIcon sx={{ fontSize: 16, color: "success.main" }} />;
-    if (current < previous) return <TrendingDownIcon sx={{ fontSize: 16, color: "error.main" }} />;
+    if (current > previous)
+      return <TrendingUpIcon sx={{ fontSize: 16, color: "success.main" }} />;
+    if (current < previous)
+      return <TrendingDownIcon sx={{ fontSize: 16, color: "error.main" }} />;
     return null;
   };
 
@@ -93,7 +101,11 @@ const RatingsTab: React.FC = observer(() => {
         <Grid item xs={6} sm={3}>
           <Card sx={{ textAlign: "center" }}>
             <CardContent>
-              <Typography variant="h4" color="primary" sx={{ fontWeight: "bold" }}>
+              <Typography
+                variant="h4"
+                color="primary"
+                sx={{ fontWeight: "bold" }}
+              >
                 {totalRatings}
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -105,9 +117,20 @@ const RatingsTab: React.FC = observer(() => {
         <Grid item xs={6} sm={3}>
           <Card sx={{ textAlign: "center" }}>
             <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 0.5,
+                }}
+              >
                 <StarIcon sx={{ color: "#ffd700", fontSize: "1.5rem" }} />
-                <Typography variant="h4" color="primary" sx={{ fontWeight: "bold" }}>
+                <Typography
+                  variant="h4"
+                  color="primary"
+                  sx={{ fontWeight: "bold" }}
+                >
                   {averageRating}
                 </Typography>
               </Box>
@@ -120,7 +143,11 @@ const RatingsTab: React.FC = observer(() => {
         <Grid item xs={6} sm={3}>
           <Card sx={{ textAlign: "center" }}>
             <CardContent>
-              <Typography variant="h4" color="primary" sx={{ fontWeight: "bold" }}>
+              <Typography
+                variant="h4"
+                color="primary"
+                sx={{ fontWeight: "bold" }}
+              >
                 {performerList.length}
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -132,8 +159,14 @@ const RatingsTab: React.FC = observer(() => {
         <Grid item xs={6} sm={3}>
           <Card sx={{ textAlign: "center" }}>
             <CardContent>
-              <Typography variant="h4" color="primary" sx={{ fontWeight: "bold" }}>
-                {performerList.length > 0 ? performerList[0].averageRating : "0.0"}
+              <Typography
+                variant="h4"
+                color="primary"
+                sx={{ fontWeight: "bold" }}
+              >
+                {performerList.length > 0
+                  ? performerList[0].averageRating
+                  : "0.0"}
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 Top Rating
@@ -151,7 +184,10 @@ const RatingsTab: React.FC = observer(() => {
           </Typography>
           <Box sx={{ mt: 2 }}>
             {ratingDistribution.map(({ rating, count, percentage }) => (
-              <Box key={rating} sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <Box
+                key={rating}
+                sx={{ display: "flex", alignItems: "center", mb: 1 }}
+              >
                 <Box sx={{ minWidth: 30 }}>
                   <Typography variant="body2" color="text.secondary">
                     {rating}★
@@ -194,22 +230,43 @@ const RatingsTab: React.FC = observer(() => {
               {performerList.map((performer: any, index: number) => (
                 <Box key={`${performer.singer}-${performer.song}`}>
                   <Box sx={{ display: "flex", alignItems: "center", py: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", minWidth: 60 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        minWidth: 60,
+                      }}
+                    >
                       <Typography
                         variant="h6"
                         sx={{
-                          color: index === 0 ? "#ffd700" : index === 1 ? "#c0c0c0" : index === 2 ? "#cd7f32" : "text.secondary",
+                          color:
+                            index === 0
+                              ? "#ffd700"
+                              : index === 1
+                                ? "#c0c0c0"
+                                : index === 2
+                                  ? "#cd7f32"
+                                  : "text.secondary",
                           fontWeight: "bold",
                           mr: 1,
                         }}
                       >
                         #{index + 1}
                       </Typography>
-                      {getRatingIcon(performer.averageRating, index > 0 ? performerList[index - 1].averageRating : undefined)}
+                      {getRatingIcon(
+                        performer.averageRating,
+                        index > 0
+                          ? performerList[index - 1].averageRating
+                          : undefined
+                      )}
                     </Box>
-                    
+
                     <Box sx={{ flex: 1, mx: 2 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontWeight: "bold" }}
+                      >
                         {performer.singer}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -228,7 +285,8 @@ const RatingsTab: React.FC = observer(() => {
                         }}
                       />
                       <Typography variant="caption" color="text.secondary">
-                        ({performer.count} rating{performer.count !== 1 ? "s" : ""})
+                        ({performer.count} rating
+                        {performer.count !== 1 ? "s" : ""})
                       </Typography>
                     </Box>
                   </Box>
@@ -247,7 +305,10 @@ const RatingsTab: React.FC = observer(() => {
             Recent Ratings
           </Typography>
           {ratings.length === 0 ? (
-            <Typography color="text.secondary" sx={{ textAlign: "center", py: 3 }}>
+            <Typography
+              color="text.secondary"
+              sx={{ textAlign: "center", py: 3 }}
+            >
               No ratings yet. Be the first to rate a performance!
             </Typography>
           ) : (
@@ -258,7 +319,9 @@ const RatingsTab: React.FC = observer(() => {
                 .slice(0, 20) // Show last 20 ratings
                 .map((rating: Rating) => (
                   <Box key={rating.id} sx={{ mb: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+                    <Box
+                      sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}
+                    >
                       <Avatar
                         sx={{
                           width: 40,
@@ -269,10 +332,20 @@ const RatingsTab: React.FC = observer(() => {
                       >
                         {rating.ratedBy.charAt(0).toUpperCase()}
                       </Avatar>
-                      
+
                       <Box sx={{ flex: 1 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 0.5,
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: "bold" }}
+                          >
                             {rating.singer}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
@@ -282,8 +355,15 @@ const RatingsTab: React.FC = observer(() => {
                             {rating.song}
                           </Typography>
                         </Box>
-                        
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 1,
+                          }}
+                        >
                           <Chip
                             size="small"
                             label={`${rating.rating}/10`}
@@ -300,7 +380,7 @@ const RatingsTab: React.FC = observer(() => {
                             • {new Date(rating.createdAt).toLocaleString()}
                           </Typography>
                         </Box>
-                        
+
                         {rating.comment && (
                           <Paper
                             sx={{
@@ -310,7 +390,10 @@ const RatingsTab: React.FC = observer(() => {
                               borderColor: "divider",
                             }}
                           >
-                            <Typography variant="body2" sx={{ fontStyle: "italic" }}>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontStyle: "italic" }}
+                            >
                               "{rating.comment}"
                             </Typography>
                           </Paper>

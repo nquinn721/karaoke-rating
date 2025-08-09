@@ -3,10 +3,10 @@ import { ChatGateway } from "../chat/chat.gateway";
 import {
   CreateShowDto,
   JoinShowDto,
+  QueueItem,
   RatePerformanceDto,
   Rating,
   Show,
-  QueueItem,
 } from "./shows.interface";
 
 @Injectable()

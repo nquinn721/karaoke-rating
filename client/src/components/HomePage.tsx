@@ -128,16 +128,35 @@ const HomePage: React.FC = observer(() => {
 
   return (
     <Box>
-      {/* Clean mobile-friendly header */}
+      {/* Polished, mobile-friendly header */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 3,
+          mb: { xs: 2, sm: 3 },
+          p: { xs: 1.25, sm: 2 },
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          background:
+            "linear-gradient(135deg, rgba(255,107,107,0.12) 0%, rgba(162,155,254,0.10) 50%, rgba(78,205,196,0.10) 100%)",
+          backdropFilter: "blur(4px)",
         }}
       >
-        <Typography variant="h3" component="h1" color="primary">
+        <Typography
+          component="h1"
+          sx={{
+            fontWeight: 800,
+            letterSpacing: -0.5,
+            lineHeight: 1.2,
+            fontSize: { xs: "1.6rem", sm: "2.25rem" },
+            background: "linear-gradient(90deg, #ff6b6b, #a29bfe, #4ecdc4)",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            color: "transparent",
+          }}
+        >
           Karaoke Shows
         </Typography>
         <UserMenu
@@ -263,22 +282,49 @@ const HomePage: React.FC = observer(() => {
                       </Typography>
                     )}
 
-                    {isInThisShow ? (
-                      <Chip
-                        label="You're in this show"
-                        color="success"
-                        variant="outlined"
-                        sx={{ mt: 1 }}
-                      />
-                    ) : (
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        onClick={() => handleJoinShow(show.id)}
-                      >
-                        Join Show
-                      </Button>
-                    )}
+                    {
+                      isInThisShow ? (
+                        <Chip
+                          label="You're in this show"
+                          color="success"
+                          variant="outlined"
+                          sx={{ mt: 1 }}
+                        />
+                      ) : (
+                        <Button
+                          variant="contained"
+                          fullWidth
+                          onClick={() => handleJoinShow(show.id)}
+                        >
+                          Join Show
+                        </Button>
+                      )
+                      /* <Button
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => handleJoinShow(show.id)}
+                      sx={{
+                        borderColor: isInThisShow ? "transparent" : "primary.main",
+                        color: isInThisShow ? "success.main" : "inherit",
+                        position: "relative",
+                        overflow: "hidden",
+                        "&:after": {
+                          content: '""',
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          background:
+                            "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%)",
+                          opacity: isInThisShow ? 1 : 0,
+                          transition: "opacity 0.3s ease",
+                        },
+                      }}
+                    >
+                      {isInThisShow ? "Joined" : "Join Show"}
+                    </Button> */
+                    }
                   </CardContent>
                 </Card>
               </Grid>

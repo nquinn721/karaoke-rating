@@ -1,4 +1,4 @@
-// MusicBrainz API service for song/artist search
+// Music API service for song/artist search using backend API
 export interface MusicSearchResult {
   id: string;
   title: string;
@@ -8,73 +8,78 @@ export interface MusicSearchResult {
 }
 
 class MusicService {
-  private readonly baseURL = 'https://musicbrainz.org/ws/2';
-  private readonly userAgent = 'KaraokeRatingsApp/1.0.0';
+  private getBaseURL(): string {
+    const isDevelopment = import.meta.env.MODE === 'development';
+    return isDevelopment ? 'http://localhost:3000' : '';
+  }
 
-  // Search for songs by title
+  // Search for songs by title using backend API
   async searchSongs(query: string, limit = 10): Promise<MusicSearchResult[]> {
     if (query.length < 3) return [];
 
     try {
-      const encodedQuery = encodeURIComponent(query);
-      const url = `${this.baseURL}/recording?query=recording:${encodedQuery}&fmt=json&limit=${limit}`;
+      const baseURL = this.getBaseURL();
+      const url = `${baseURL}/api/music/search/songs?q=${encodeURIComponent(query)}&limit=${limit}`;
       
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': this.userAgent,
-        },
-      });
+      const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`MusicBrainz API error: ${response.status}`);
+        throw new Error(`Music API error: ${response.status}`);
       }
 
       const data = await response.json();
-      
-      return data.recordings?.map((recording: any) => ({
-        id: recording.id,
-        title: recording.title,
-        artist: recording['artist-credit']?.[0]?.name || 'Unknown Artist',
-        album: recording.releases?.[0]?.title,
-        year: recording.releases?.[0]?.date?.split('-')[0],
-      })) || [];
+      return data || [];
     } catch (error) {
       console.error('Music search error:', error);
       return [];
     }
   }
 
-  // Search for artists
+  // Search for artists using backend API
   async searchArtists(query: string, limit = 10): Promise<{ id: string; name: string; }[]> {
     if (query.length < 2) return [];
 
     try {
-      const encodedQuery = encodeURIComponent(query);
-      const url = `${this.baseURL}/artist?query=artist:${encodedQuery}&fmt=json&limit=${limit}`;
+      const baseURL = this.getBaseURL();
+      const url = `${baseURL}/api/music/search/artists?q=${encodeURIComponent(query)}&limit=${limit}`;
       
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': this.userAgent,
-        },
-      });
+      const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`MusicBrainz API error: ${response.status}`);
+        throw new Error(`Music API error: ${response.status}`);
       }
 
       const data = await response.json();
-      
-      return data.artists?.map((artist: any) => ({
-        id: artist.id,
-        name: artist.name,
-      })) || [];
+      return data || [];
     } catch (error) {
       console.error('Artist search error:', error);
       return [];
     }
   }
 
-  // Combined search for both songs and artists
+  // Combined search for better results using backend API
+  async searchCombined(query: string, limit = 10): Promise<MusicSearchResult[]> {
+    if (query.length < 3) return [];
+
+    try {
+      const baseURL = this.getBaseURL();
+      const url = `${baseURL}/api/music/search/combined?q=${encodeURIComponent(query)}&limit=${limit}`;
+      
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Music API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data || [];
+    } catch (error) {
+      console.error('Combined music search error:', error);
+      return [];
+    }
+  }
+
+  // Search both songs and artists (for comprehensive results)
   async searchMusic(query: string, limit = 8): Promise<{
     songs: MusicSearchResult[];
     artists: { id: string; name: string; }[];
@@ -83,11 +88,13 @@ class MusicService {
 
     const [songs, artists] = await Promise.all([
       this.searchSongs(query, limit),
-      this.searchArtists(query, Math.floor(limit / 2)),
+      this.searchArtists(query, limit),
     ]);
 
     return { songs, artists };
   }
 }
 
+// Export singleton instance
 export const musicService = new MusicService();
+export default musicService;
