@@ -8,7 +8,6 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { ChatMessage } from "./chat.interface";
-import { Inject, forwardRef } from "@nestjs/common";
 // import { FeedbackService } from "../feedback/feedback.service"; // Temporarily disabled
 
 @WebSocketGateway({
@@ -20,10 +19,9 @@ export class ChatGateway implements OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(
-    // @Inject(forwardRef(() => FeedbackService))
-    // private readonly feedbackService: FeedbackService, // Temporarily disabled
-  ) {}
+  constructor() // @Inject(forwardRef(() => FeedbackService))
+  // private readonly feedbackService: FeedbackService, // Temporarily disabled
+  {}
 
   private messages: ChatMessage[] = [];
   // Track participants per show: showId -> (socketId -> username)
@@ -56,7 +54,8 @@ export class ChatGateway implements OnGatewayDisconnect {
     if (map.size === 0) this.participantsByShow.delete(showId);
     // clear showId if no longer in this show
     const meta = this.socketMeta.get(socketId) || {};
-    if (meta.showId === showId) this.socketMeta.set(socketId, { ...meta, showId: undefined });
+    if (meta.showId === showId)
+      this.socketMeta.set(socketId, { ...meta, showId: undefined });
   }
 
   private removeParticipantFromAll(client: Socket) {
@@ -77,22 +76,26 @@ export class ChatGateway implements OnGatewayDisconnect {
   }
 
   private emitAdminActiveUsers() {
-    const users = Array.from(this.socketMeta.entries()).map(([socketId, meta]) => ({
-      socketId,
-      username: meta.username || "",
-      showId: meta.showId,
-    }));
+    const users = Array.from(this.socketMeta.entries()).map(
+      ([socketId, meta]) => ({
+        socketId,
+        username: meta.username || "",
+        showId: meta.showId,
+      })
+    );
     this.server.emit("adminActiveUsers", users);
   }
 
   @SubscribeMessage("adminSubscribe")
   async handleAdminSubscribe(@ConnectedSocket() client: Socket) {
     // Send current active users to this admin client
-    const users = Array.from(this.socketMeta.entries()).map(([socketId, meta]) => ({
-      socketId,
-      username: meta.username || "",
-      showId: meta.showId,
-    }));
+    const users = Array.from(this.socketMeta.entries()).map(
+      ([socketId, meta]) => ({
+        socketId,
+        username: meta.username || "",
+        showId: meta.showId,
+      })
+    );
     client.emit("adminActiveUsers", users);
 
     // Send all feedback as initial payload (temporarily disabled)

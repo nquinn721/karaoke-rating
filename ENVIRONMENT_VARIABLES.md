@@ -9,21 +9,23 @@
 
 **Environment Variables:**
 
-| Name | Value |
-|------|--------|
-| NODE_ENV | production |
-| DB_HOST | /cloudsql/heroic-footing-460117-k8:us-central1:stocktrader |
-| DB_PORT | 3306 |
-| DB_USERNAME | karaoke |
-| DB_PASSWORD | GC(*g""9SH@{vBr |
-| DB_DATABASE | karaoke |
+| Name        | Value                                                      |
+| ----------- | ---------------------------------------------------------- |
+| NODE_ENV    | production                                                 |
+| DB_HOST     | /cloudsql/heroic-footing-460117-k8:us-central1:stocktrader |
+| DB_PORT     | 3306                                                       |
+| DB_USERNAME | karaoke                                                    |
+| DB_PASSWORD | GC(\*g""9SH@{vBr                                           |
+| DB_DATABASE | karaoke                                                    |
 
 **Cloud SQL Connection:**
+
 - Instance: heroic-footing-460117-k8:us-central1:stocktrader
 
 **Container Port:** 8080
 
 ### Alternative: Use gcloud command (all at once)
+
 ```bash
 gcloud run services update karaoke-rating \
     --region=us-east1 \

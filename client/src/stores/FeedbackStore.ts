@@ -1,18 +1,18 @@
-import { makeObservable, observable, action } from 'mobx';
-import { BaseAPIStore } from './BaseAPIStore';
+import { action, makeObservable, observable } from "mobx";
+import { BaseAPIStore } from "./BaseAPIStore";
 
 export enum FeedbackType {
-  BUG = 'bug',
-  FEATURE = 'feature',
-  IMPROVEMENT = 'improvement',
-  GENERAL = 'general',
+  BUG = "bug",
+  FEATURE = "feature",
+  IMPROVEMENT = "improvement",
+  GENERAL = "general",
 }
 
 export enum FeedbackStatus {
-  PENDING = 'pending',
-  REVIEWED = 'reviewed',
-  RESOLVED = 'resolved',
-  REJECTED = 'rejected',
+  PENDING = "pending",
+  REVIEWED = "reviewed",
+  RESOLVED = "resolved",
+  REJECTED = "rejected",
 }
 
 export interface Feedback {
@@ -51,11 +51,11 @@ export class FeedbackStore extends BaseAPIStore {
   async submitFeedback(feedbackData: CreateFeedbackDto): Promise<void> {
     this.isLoading = true;
     try {
-      const response = await this.post('/api/feedback', feedbackData);
+      const response = await this.post("/api/feedback", feedbackData);
       // Optionally add to local list or refetch
-      console.log('Feedback submitted successfully:', response);
+      console.log("Feedback submitted successfully:", response);
     } catch (error) {
-      console.error('Error submitting feedback:', error);
+      console.error("Error submitting feedback:", error);
       throw error;
     } finally {
       this.isLoading = false;
@@ -72,7 +72,7 @@ export class FeedbackStore extends BaseAPIStore {
         updatedAt: new Date(feedback.updatedAt),
       }));
     } catch (error) {
-      console.error('Error fetching feedback:', error);
+      console.error("Error fetching feedback:", error);
       throw error;
     } finally {
       this.isLoading = false;
@@ -82,14 +82,14 @@ export class FeedbackStore extends BaseAPIStore {
   async fetchAllFeedback(): Promise<void> {
     this.isLoading = true;
     try {
-      const response = await this.get('/api/feedback');
+      const response = await this.get("/api/feedback");
       this.feedbackList = response.map((feedback: any) => ({
         ...feedback,
         createdAt: new Date(feedback.createdAt),
         updatedAt: new Date(feedback.updatedAt),
       }));
     } catch (error) {
-      console.error('Error fetching all feedback:', error);
+      console.error("Error fetching all feedback:", error);
       throw error;
     } finally {
       this.isLoading = false;

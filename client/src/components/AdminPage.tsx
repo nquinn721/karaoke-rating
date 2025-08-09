@@ -58,7 +58,10 @@ const AdminPage: React.FC = observer(() => {
         createdAt: new Date(f.createdAt),
         updatedAt: new Date(f.updatedAt),
       };
-      feedbackStore.feedbackList = [normalized, ...(feedbackStore.feedbackList || [])];
+      feedbackStore.feedbackList = [
+        normalized,
+        ...(feedbackStore.feedbackList || []),
+      ];
     };
     const onAdminFeedbackUpdated = (f: any) => {
       const normalized = {
@@ -66,8 +69,8 @@ const AdminPage: React.FC = observer(() => {
         createdAt: new Date(f.createdAt),
         updatedAt: new Date(f.updatedAt),
       };
-      feedbackStore.feedbackList = (feedbackStore.feedbackList || []).map((x) =>
-        x.id === normalized.id ? normalized : x
+      feedbackStore.feedbackList = (feedbackStore.feedbackList || []).map(
+        (x) => (x.id === normalized.id ? normalized : x)
       );
     };
 
@@ -156,7 +159,9 @@ const AdminPage: React.FC = observer(() => {
                       key={u.username}
                       sx={{ display: "flex", alignItems: "center", gap: 1 }}
                     >
-                      <Typography sx={{ fontWeight: 600 }}>{u.username}</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>
+                        {u.username}
+                      </Typography>
                       {u.shows.map((sid) => (
                         <Chip key={sid} label={`show:${sid}`} size="small" />
                       ))}

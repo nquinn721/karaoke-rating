@@ -1,4 +1,4 @@
-import { FeedbackType, FeedbackStatus } from './entities/feedback.entity';
+import { FeedbackStatus, FeedbackType } from "./entities/feedback.entity";
 
 export interface Feedback {
   id: string;

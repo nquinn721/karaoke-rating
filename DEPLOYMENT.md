@@ -1,12 +1,14 @@
 # Google Cloud Run Deployment Guide
 
 ## Prerequisites
+
 1. Google Cloud SDK installed and authenticated
 2. Docker installed
 3. Your Google Cloud project set up with billing enabled
 4. Cloud SQL instance created with MySQL
 
 ## Step 1: Set up Google Cloud Project
+
 ```bash
 # Set your project ID
 export PROJECT_ID=your-project-id
@@ -19,6 +21,7 @@ gcloud services enable sqladmin.googleapis.com
 ```
 
 ## Step 2: Set up Cloud SQL Database
+
 If you haven't already created your Cloud SQL instance:
 
 ```bash
@@ -40,6 +43,7 @@ gcloud sql users create karaoke \
 ## Step 3: Build and Deploy to Cloud Run
 
 ### Option A: Using Cloud Build (Recommended)
+
 ```bash
 # Build using Cloud Build
 gcloud builds submit --tag gcr.io/$PROJECT_ID/karaoke-rating
@@ -63,6 +67,7 @@ gcloud run deploy karaoke-rating \
 ```
 
 ### Option B: Using Docker locally then push
+
 ```bash
 # Build Docker image
 docker build -t gcr.io/$PROJECT_ID/karaoke-rating .
@@ -76,12 +81,15 @@ docker push gcr.io/$PROJECT_ID/karaoke-rating
 ## Step 4: Set up Cloud SQL Connection
 
 ### Option A: Public IP (Current setup)
+
 1. Get your Cloud SQL instance's public IP:
+
 ```bash
 gcloud sql instances describe karaoke-db --format="value(ipAddresses[0].ipAddress)"
 ```
 
 2. Update the DB_HOST environment variable with this IP:
+
 ```bash
 gcloud run services update karaoke-rating \
     --region=us-east1 \
@@ -89,6 +97,7 @@ gcloud run services update karaoke-rating \
 ```
 
 ### Option B: Private IP with VPC (More secure, optional)
+
 ```bash
 # Create VPC connector (optional, for private connection)
 gcloud compute networks vpc-access connectors create karaoke-connector \
@@ -108,6 +117,7 @@ gcloud run deploy karaoke-rating \
 ```
 
 ## Step 5: Set up Secrets (Alternative to env vars)
+
 For better security, you can use Google Secret Manager:
 
 ```bash
@@ -124,6 +134,7 @@ gcloud run deploy karaoke-rating \
 ```
 
 ## Step 6: Verify Deployment
+
 ```bash
 # Get service URL
 gcloud run services describe karaoke-rating --region=us-east1 --format="value(status.url)"
@@ -133,6 +144,7 @@ curl https://your-service-url.run.app
 ```
 
 ## Environment Variables Summary
+
 For your current deployment at `karaoke-rating-203453576607.us-east1.run.app`, set these:
 
 - `NODE_ENV=production`
@@ -143,6 +155,7 @@ For your current deployment at `karaoke-rating-203453576607.us-east1.run.app`, s
 - `DB_DATABASE=karaoke`
 
 ## Quick Update Command
+
 To update your existing service with the correct environment variables:
 
 ```bash

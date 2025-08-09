@@ -1,12 +1,12 @@
-import { Injectable, Inject, forwardRef } from "@nestjs/common";
+import { Inject, Injectable, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { ChatGateway } from "../chat/chat.gateway";
+import { Feedback, FeedbackStatus } from "./entities/feedback.entity";
 import {
   CreateFeedbackDto,
   UpdateFeedbackStatusDto,
 } from "./feedback.interface";
-import { Feedback, FeedbackStatus } from "./entities/feedback.entity";
-import { ChatGateway } from "../chat/chat.gateway";
 
 @Injectable()
 export class FeedbackService {
@@ -14,7 +14,7 @@ export class FeedbackService {
     @InjectRepository(Feedback)
     private feedbackRepository: Repository<Feedback>,
     @Inject(forwardRef(() => ChatGateway))
-    private readonly chatGateway: ChatGateway,
+    private readonly chatGateway: ChatGateway
   ) {}
 
   async createFeedback(
@@ -37,14 +37,14 @@ export class FeedbackService {
 
   async getAllFeedback(): Promise<Feedback[]> {
     return await this.feedbackRepository.find({
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
   }
 
   async getFeedbackByUsername(username: string): Promise<Feedback[]> {
     return await this.feedbackRepository.find({
       where: { username },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
   }
 
@@ -61,7 +61,8 @@ export class FeedbackService {
 
     // notify admins via socket
     try {
-      if (updated) this.chatGateway.server.emit("adminFeedbackUpdated", updated);
+      if (updated)
+        this.chatGateway.server.emit("adminFeedbackUpdated", updated);
     } catch {}
 
     return updated;

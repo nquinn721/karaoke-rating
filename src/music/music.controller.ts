@@ -2,7 +2,7 @@ import { BadRequestException, Controller, Get, Query } from "@nestjs/common";
 import { ArtistSearchResult, MusicSearchResult } from "./music.interface";
 import { MusicService } from "./music.service";
 
-@Controller('api/music')
+@Controller("api/music")
 export class MusicController {
   constructor(private readonly musicService: MusicService) {}
 

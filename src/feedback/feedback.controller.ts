@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Post, Put, Query } from "@nestjs/common";
+import { Feedback } from "./entities/feedback.entity";
 import {
   CreateFeedbackDto,
   UpdateFeedbackStatusDto,
 } from "./feedback.interface";
-import { Feedback } from "./entities/feedback.entity";
 import { FeedbackService } from "./feedback.service";
 
 @Controller("api/feedback")
