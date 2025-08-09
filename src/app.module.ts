@@ -12,20 +12,21 @@ import { ShowsModule } from "./shows/shows.module";
 
 @Module({
   imports: [
-    // Database configuration
+    // Database configuration - updated user permissions
     TypeOrmModule.forRoot({
       type: "mysql",
-      ...(process.env.NODE_ENV === "production" 
+      ...(process.env.NODE_ENV === "production"
         ? {
             // Use Unix socket for Cloud SQL in production
-            socketPath: process.env.DB_HOST || "/cloudsql/heroic-footing-460117-k8:us-central1:stocktrader",
+            socketPath:
+              process.env.DB_HOST ||
+              "/cloudsql/heroic-footing-460117-k8:us-central1:stocktrader",
           }
         : {
             // Use host/port for local development
-            host: process.env.DB_HOST || "localhost", 
+            host: process.env.DB_HOST || "localhost",
             port: parseInt(process.env.DB_PORT) || 3306,
-          }
-      ),
+          }),
       username: process.env.DB_USERNAME || "admin",
       password: process.env.DB_PASSWORD || "password",
       database: process.env.DB_DATABASE || "karaoke",
