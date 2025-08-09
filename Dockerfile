@@ -36,6 +36,6 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nestjs -u 1001
 USER nestjs
 
-EXPOSE 3000
+EXPOSE 8080
 
 CMD ["node", "dist/main.js"]

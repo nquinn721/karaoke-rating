@@ -30,3 +30,8 @@ textarea {
   /* Prevent zoom on iOS when input is focused */
   font-size: 16px !important;
 }
+
+/* Queue list: add spacing between text and action button */
+.css-tlelie-MuiListItemText-root {
+  margin-right: 10px !important;
+}

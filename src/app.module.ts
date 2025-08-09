@@ -16,13 +16,10 @@ import { ShowsModule } from "./shows/shows.module";
     TypeOrmModule.forRoot({
       type: "mysql",
       host: process.env.DB_HOST || "localhost",
-      port: 3306,
-      username: process.env.NODE_ENV === "production" ? "karaoke" : "admin",
-      password:
-        process.env.NODE_ENV === "production"
-          ? 'GC(*g""\\9SH@{vBr'
-          : "password",
-      database: "karaoke",
+      port: parseInt(process.env.DB_PORT) || 3306,
+      username: process.env.DB_USERNAME || "admin",
+      password: process.env.DB_PASSWORD || "password",
+      database: process.env.DB_DATABASE || "karaoke",
       entities: [Feedback],
       synchronize: process.env.NODE_ENV !== "production", // Only sync in development
       ssl:

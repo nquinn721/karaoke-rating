@@ -3,22 +3,28 @@ import {
   Send as SendIcon,
 } from "@mui/icons-material";
 import {
+  Alert,
   Avatar,
   Box,
   Button,
   Card,
   CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   IconButton,
   Paper,
   Slider,
+  Snackbar,
   Tab,
   Tabs,
   TextField,
   Typography,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { rootStore } from "../stores/RootStore";
 import CurrentPerformance from "./CurrentPerformance";
@@ -35,6 +41,15 @@ const ShowPage: React.FC = observer(() => {
   const [chatMessage, setChatMessage] = useState("");
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
+  // Confirm leave dialog
+  const [leaveOpen, setLeaveOpen] = useState(false);
+
+  // Toast state for join notifications
+  const [joinToastOpen, setJoinToastOpen] = useState(false);
+  const [joinToastMessage, setJoinToastMessage] = useState("");
+  const prevParticipantsRef = React.useRef<Set<string>>(new Set());
+  const initializedRef = React.useRef(false);
+
   useEffect(() => {
     if (id) {
       showsStore.fetchShow(id);
@@ -45,9 +60,83 @@ const ShowPage: React.FC = observer(() => {
     return () => {
       if (id) {
         chatStore.leaveShow(id);
+        // Fire-and-forget: ask API to remove this user’s queued songs
+        try {
+          showsStore.removeQueueBySinger(id, userStore.username);
+        } catch {}
       }
     };
   }, [id]);
+
+  const handleBackClick = () => {
+    setLeaveOpen(true);
+  };
+
+  const confirmLeave = async () => {
+    if (!id) return;
+    // Tell server we left, then remove our queued songs
+    chatStore.leaveShow(id);
+    try {
+      await showsStore.removeQueueBySinger(id, userStore.username);
+    } catch {}
+    setLeaveOpen(false);
+    navigate("/");
+  };
+
+  // Prefer live current performer from sockets
+  const currentPerformer = useMemo(() => {
+    const live = id ? chatStore.currentPerformerByShow.get(id) : undefined;
+    return {
+      singer: live?.singer ?? showsStore.currentShow?.currentSinger,
+      song: live?.song ?? showsStore.currentShow?.currentSong,
+    } as { singer?: string; song?: string };
+  }, [
+    id,
+    chatStore.currentPerformerByShow,
+    showsStore.currentShow?.currentSinger,
+    showsStore.currentShow?.currentSong,
+  ]);
+
+  // Detect new participants joining and show toast
+  const currentParticipants =
+    (id &&
+      (chatStore.participantsByShow.get(id) ??
+        showsStore.currentShow?.participants)) ||
+    [];
+  useEffect(() => {
+    const list = Array.isArray(currentParticipants) ? currentParticipants : [];
+    const currSet = new Set(list);
+
+    if (!initializedRef.current) {
+      // Skip initial diff to avoid toasts on first load
+      prevParticipantsRef.current = currSet;
+      initializedRef.current = true;
+      return;
+    }
+
+    // Find added users
+    const added: string[] = [];
+    for (const p of currSet) {
+      if (!prevParticipantsRef.current.has(p)) added.push(p);
+    }
+
+    // Update previous set
+    prevParticipantsRef.current = currSet;
+
+    const newJoins = added.filter(
+      (name) => name && name !== userStore.username
+    );
+    if (newJoins.length > 0) {
+      const msg =
+        newJoins.length === 1
+          ? `${newJoins[0]} joined the show`
+          : `${newJoins[0]} and ${newJoins.length - 1} other${
+              newJoins.length - 1 === 1 ? "" : "s"
+            } joined the show`;
+      setJoinToastMessage(msg);
+      setJoinToastOpen(true);
+    }
+  }, [id, currentParticipants, userStore.username]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -73,8 +162,8 @@ const ShowPage: React.FC = observer(() => {
   const handleSubmitRating = async () => {
     if (
       !showsStore.currentShow ||
-      !showsStore.currentShow.currentSinger ||
-      !showsStore.currentShow.currentSong
+      !currentPerformer.singer ||
+      !currentPerformer.song
     ) {
       return;
     }
@@ -82,8 +171,8 @@ const ShowPage: React.FC = observer(() => {
     try {
       await showsStore.ratePerformance(
         showsStore.currentShow.id,
-        showsStore.currentShow.currentSinger,
-        showsStore.currentShow.currentSong,
+        currentPerformer.singer,
+        currentPerformer.song,
         rating,
         comment,
         userStore.username
@@ -171,10 +260,7 @@ const ShowPage: React.FC = observer(() => {
             mr: 1,
           }}
         >
-          <IconButton
-            onClick={() => navigate("/")}
-            sx={{ mr: 1, flexShrink: 0 }}
-          >
+          <IconButton onClick={handleBackClick} sx={{ mr: 1, flexShrink: 0 }}>
             <ArrowBackIcon />
           </IconButton>
           <Typography
@@ -229,7 +315,7 @@ const ShowPage: React.FC = observer(() => {
           <CurrentPerformance showId={id || ""} />
 
           {/* Rating Section - only show if there's a current performance */}
-          {showsStore.currentShow.currentSinger && (
+          {currentPerformer.singer && (
             <Card
               sx={{
                 mb: 3,
@@ -564,6 +650,37 @@ const ShowPage: React.FC = observer(() => {
       )}
 
       {activeTab === 2 && <RatingsTab />}
+
+      {/* Leave confirmation dialog */}
+      <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)}>
+        <DialogTitle>Leave this show?</DialogTitle>
+        <DialogContent>
+          Leaving will remove any of your queued songs.
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLeaveOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={confirmLeave}>
+            Leave Show
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Join toast */}
+      <Snackbar
+        open={joinToastOpen}
+        autoHideDuration={3000}
+        onClose={() => setJoinToastOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setJoinToastOpen(false)}
+          severity="info"
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {joinToastMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 });

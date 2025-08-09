@@ -4,9 +4,12 @@ import { AppModule } from "./app.module";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for development
+  // Enable CORS
   app.enableCors({
-    origin: process.env.NODE_ENV === "production" ? false : "*",
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["https://karaoke-rating-203453576607.europe-west1.run.app"]
+        : "*",
     credentials: true,
   });
 

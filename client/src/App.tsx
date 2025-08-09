@@ -8,7 +8,15 @@ import UsernameModal from "./components/UsernameModal";
 import { rootStore } from "./stores/RootStore";
 
 const App: React.FC = observer(() => {
-  const { userStore } = rootStore;
+  const { userStore, showsStore, chatStore } = rootStore;
+
+  // Ensure shows load on first visit and websockets are ready
+  React.useEffect(() => {
+    if (!showsStore.shows.length) {
+      showsStore.fetchShows();
+    }
+    chatStore.initializeSocket();
+  }, []);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>

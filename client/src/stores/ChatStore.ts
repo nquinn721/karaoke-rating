@@ -14,6 +14,13 @@ export class ChatStore {
   participantsByShow = observable.map<string, string[]>([]);
   // live shows list cache from socket broadcasts
   liveShows: Show[] = [];
+  // live queue per show from websocket updates
+  queueByShow = observable.map<string, { singer: string; song: string }[]>([]);
+  // live current performer per show
+  currentPerformerByShow = observable.map<
+    string,
+    { singer?: string; song?: string }
+  >([]);
 
   constructor(baseAPI: BaseAPIStore) {
     makeAutoObservable(this);
@@ -85,6 +92,40 @@ export class ChatStore {
         this.liveShows = shows;
       });
     });
+
+    // Receive live queue updates
+    this.socket.on(
+      "queueUpdated",
+      ({
+        showId,
+        queue,
+      }: {
+        showId: string;
+        queue: { singer: string; song: string }[];
+      }) => {
+        runInAction(() => {
+          this.queueByShow.set(showId, Array.isArray(queue) ? queue : []);
+        });
+      }
+    );
+
+    // Receive current performer changes
+    this.socket.on(
+      "currentPerformerChanged",
+      ({
+        showId,
+        singer,
+        song,
+      }: {
+        showId: string;
+        singer?: string;
+        song?: string;
+      }) => {
+        runInAction(() => {
+          this.currentPerformerByShow.set(showId, { singer, song });
+        });
+      }
+    );
   }
 
   joinShow(showId: string, username: string) {
@@ -124,6 +165,8 @@ export class ChatStore {
       this.currentShowId = null;
       this.participantsByShow.clear();
       this.liveShows = [];
+      this.queueByShow.clear();
+      this.currentPerformerByShow.clear();
     }
   }
 
