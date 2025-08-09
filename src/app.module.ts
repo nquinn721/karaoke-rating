@@ -35,7 +35,7 @@ import { User } from "./user/entities/user.entity";
       password: process.env.DB_PASSWORD || "password",
       database: process.env.DB_DATABASE || "karaoke",
       entities: [User, Show, Rating], // Database entities
-      synchronize: process.env.NODE_ENV !== "production", // Only sync in development
+      synchronize: true, // Temporarily enabled to create initial tables
       ssl: process.env.NODE_ENV === "production" ? false : false, // No SSL needed for Unix socket
     }),
     // Only serve static files in production
