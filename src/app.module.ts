@@ -15,8 +15,17 @@ import { ShowsModule } from "./shows/shows.module";
     // Database configuration
     TypeOrmModule.forRoot({
       type: "mysql",
-      host: process.env.DB_HOST || "localhost",
-      port: parseInt(process.env.DB_PORT) || 3306,
+      ...(process.env.NODE_ENV === "production" 
+        ? {
+            // Use Unix socket for Cloud SQL in production
+            socketPath: process.env.DB_HOST || "/cloudsql/heroic-footing-460117-k8:us-central1:stocktrader",
+          }
+        : {
+            // Use host/port for local development
+            host: process.env.DB_HOST || "localhost", 
+            port: parseInt(process.env.DB_PORT) || 3306,
+          }
+      ),
       username: process.env.DB_USERNAME || "admin",
       password: process.env.DB_PASSWORD || "password",
       database: process.env.DB_DATABASE || "karaoke",
