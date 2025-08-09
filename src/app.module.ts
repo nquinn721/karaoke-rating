@@ -6,7 +6,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { ChatModule } from "./chat/chat.module";
 import { Feedback } from "./feedback/entities/feedback.entity";
-import { FeedbackModule } from "./feedback/feedback.module";
+// import { FeedbackModule } from "./feedback/feedback.module"; // Temporarily disabled
 import { MusicModule } from "./music/music.module";
 import { ShowsModule } from "./shows/shows.module";
 
@@ -38,7 +38,7 @@ import { ShowsModule } from "./shows/shows.module";
       : []),
     ShowsModule,
     ChatModule,
-    FeedbackModule,
+    // FeedbackModule, // Temporarily disabled while database is disabled
     MusicModule,
   ],
   controllers: [AppController],

@@ -35,3 +35,10 @@ textarea {
 .css-tlelie-MuiListItemText-root {
   margin-right: 10px !important;
 }
+
+/* Mobile-specific spacing for ListItemText (generated class) */
+@media (max-width: 600px) {
+  .css-1qw19ej-MuiListItemText-root {
+    margin-right: 25px !important;
+  }
+}
