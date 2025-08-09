@@ -19,7 +19,8 @@
     "build:client": "cd client && npm run build",
     "postbuild": "npm run build:client",
     "dev": "concurrently \"npm run start:dev\" \"cd client && npm run dev\"",
-    "install:all": "npm install && cd client && npm install"
+    "install:all": "npm install && cd client && npm install",
+    "fix-null-participants": "ts-node scripts/fix-null-participants.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

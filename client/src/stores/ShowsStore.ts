@@ -109,11 +109,12 @@ export class ShowsStore {
       const user = userJson ? JSON.parse(userJson) : null;
       const userId = user?.id;
 
-      const payload = userId
-        ? { showId, userId }
-        : { showId, username };
+      const payload = userId ? { showId, userId } : { showId, username };
 
-      const updatedShow = await this.baseAPI.post<Show>("/api/shows/join", payload);
+      const updatedShow = await this.baseAPI.post<Show>(
+        "/api/shows/join",
+        payload
+      );
 
       const normalized = this.normalizeShow(updatedShow as any);
       runInAction(() => {

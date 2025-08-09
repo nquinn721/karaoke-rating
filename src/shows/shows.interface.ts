@@ -37,6 +37,11 @@ export interface JoinShowDto {
   userId: number; // Changed from username to userId
 }
 
+export interface LeaveShowDto {
+  showId: string;
+  userId: number;
+}
+
 export interface UpdateCurrentPerformerDto {
   singerId: number;
   song: string;

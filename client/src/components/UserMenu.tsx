@@ -1,4 +1,6 @@
 import {
+  AdminPanelSettings as AdminIcon,
+  KeyboardArrowDown as ArrowDropDownIcon,
   Feedback as FeedbackIcon,
   History as HistoryIcon,
   Person as PersonIcon,
@@ -17,6 +19,7 @@ import {
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { rootStore } from "../stores/RootStore";
 import FeedbackModal from "./FeedbackModal";
 
@@ -30,6 +33,7 @@ const UserMenu: React.FC<UserMenuProps> = observer(
     const { userStore } = rootStore;
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+    const navigate = useNavigate();
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
       setAnchorEl(event.currentTarget);
@@ -37,11 +41,6 @@ const UserMenu: React.FC<UserMenuProps> = observer(
 
     const handleClose = () => {
       setAnchorEl(null);
-    };
-
-    const handleFeedbackClick = () => {
-      setFeedbackModalOpen(true);
-      handleClose();
     };
 
     const handleUsernameClick = () => {
@@ -77,14 +76,25 @@ const UserMenu: React.FC<UserMenuProps> = observer(
           <Typography
             variant="body2"
             color="text.secondary"
+            onClick={handleClick}
             sx={{
               fontSize: { xs: "0.75rem", sm: "0.875rem" },
               whiteSpace: "nowrap",
               ml: 1,
+              cursor: "pointer",
+              "&:hover": { textDecoration: "underline" },
             }}
           >
             {userStore.username}
           </Typography>
+          <IconButton
+            onClick={handleClick}
+            size="small"
+            aria-label="Open user menu"
+            sx={{ ml: 0.5 }}
+          >
+            <ArrowDropDownIcon fontSize="small" />
+          </IconButton>
         </Box>
 
         <Menu
@@ -136,19 +146,44 @@ const UserMenu: React.FC<UserMenuProps> = observer(
             </MenuItem>
           )}
 
-          <MenuItem onClick={handleFeedbackClick}>
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              setFeedbackModalOpen(true);
+            }}
+          >
             <ListItemIcon>
               <FeedbackIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Send Feedback</ListItemText>
           </MenuItem>
 
-          <MenuItem onClick={handleClose} disabled>
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              navigate("/history");
+            }}
+          >
             <ListItemIcon>
               <HistoryIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>My History</ListItemText>
           </MenuItem>
+
+          {/* Admin link visible only to admins */}
+          {userStore.isAdmin && (
+            <MenuItem
+              onClick={() => {
+                handleClose();
+                navigate("/admin");
+              }}
+            >
+              <ListItemIcon>
+                <AdminIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Admin</ListItemText>
+            </MenuItem>
+          )}
 
           <MenuItem onClick={handleClose} disabled>
             <ListItemIcon>

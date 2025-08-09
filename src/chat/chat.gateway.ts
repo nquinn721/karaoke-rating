@@ -1,4 +1,5 @@
 import { Inject, forwardRef } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
 import {
   ConnectedSocket,
   MessageBody,
@@ -8,7 +9,10 @@ import {
   WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
+import { Repository } from "typeorm";
 import { FeedbackService } from "../feedback/feedback.service";
+import { ShowsService } from "../shows/shows.service";
+import { User } from "../user/entities/user.entity";
 import { ChatMessage } from "./chat.interface";
 
 @WebSocketGateway({
@@ -22,22 +26,33 @@ export class ChatGateway implements OnGatewayDisconnect {
 
   constructor(
     @Inject(forwardRef(() => FeedbackService))
-    private readonly feedbackService: FeedbackService
+    private readonly feedbackService: FeedbackService,
+    @Inject(forwardRef(() => ShowsService))
+    private readonly showsService: ShowsService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>
   ) {}
 
   private messages: ChatMessage[] = [];
   // Track participants per show: showId -> (socketId -> username)
   private participantsByShow: Map<string, Map<string, string>> = new Map();
   // Track username and showId per socket for admin view
-  private socketMeta: Map<string, { username?: string; showId?: string }> =
-    new Map();
+  private socketMeta: Map<
+    string,
+    { username?: string; showId?: string; userId?: number }
+  > = new Map();
 
   private getParticipants(showId: string): string[] {
     const map = this.participantsByShow.get(showId);
     return map ? Array.from(map.values()) : [];
   }
 
-  private addParticipant(showId: string, socketId: string, username: string) {
+  private addParticipant(
+    showId: string,
+    socketId: string,
+    username: string,
+    userId?: number
+  ) {
     let map = this.participantsByShow.get(showId);
     if (!map) {
       map = new Map();
@@ -46,7 +61,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     map.set(socketId, username);
     // update meta
     const meta = this.socketMeta.get(socketId) || {};
-    this.socketMeta.set(socketId, { ...meta, username, showId });
+    this.socketMeta.set(socketId, { ...meta, username, showId, userId });
   }
 
   private removeParticipant(showId: string, socketId: string) {
@@ -60,11 +75,25 @@ export class ChatGateway implements OnGatewayDisconnect {
       this.socketMeta.set(socketId, { ...meta, showId: undefined });
   }
 
-  private removeParticipantFromAll(client: Socket) {
+  private async removeParticipantFromAll(client: Socket) {
     for (const [showId, map] of this.participantsByShow.entries()) {
       if (map.has(client.id)) {
         map.delete(client.id);
         if (map.size === 0) this.participantsByShow.delete(showId);
+
+        // Update database if user has an ID
+        const meta = this.socketMeta.get(client.id);
+        if (meta?.userId) {
+          try {
+            await this.showsService.leaveShow({
+              showId: showId,
+              userId: meta.userId,
+            });
+          } catch (error) {
+            console.error("Failed to update database on disconnect:", error);
+          }
+        }
+
         // Broadcast globally so HomePage sees all counts
         this.server.emit("participantsUpdated", {
           showId,
@@ -75,6 +104,23 @@ export class ChatGateway implements OnGatewayDisconnect {
     // remove meta
     this.socketMeta.delete(client.id);
     this.emitAdminActiveUsers();
+  }
+
+  private async handleLeaveRoom(showId: string, socketId: string) {
+    const meta = this.socketMeta.get(socketId);
+    this.removeParticipant(showId, socketId);
+
+    // Update database if user has an ID and is leaving this specific show
+    if (meta?.userId && meta.showId === showId) {
+      try {
+        await this.showsService.leaveShow({
+          showId: showId,
+          userId: meta.userId,
+        });
+      } catch (error) {
+        console.error("Failed to update database on leave:", error);
+      }
+    }
   }
 
   private emitAdminActiveUsers() {
@@ -111,15 +157,15 @@ export class ChatGateway implements OnGatewayDisconnect {
   }
 
   @SubscribeMessage("joinShow")
-  handleJoinShow(
+  async handleJoinShow(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { showId: string; username: string }
-  ): void {
+    @MessageBody() data: { showId: string; username?: string; userId?: number }
+  ): Promise<void> {
     // Leave all other joined rooms (auto-leave previous show)
     for (const room of client.rooms) {
       if (room !== client.id && room !== data.showId) {
         client.leave(room);
-        this.removeParticipant(room, client.id);
+        await this.handleLeaveRoom(room, client.id);
         // Broadcast globally so all clients update lists
         this.server.emit("participantsUpdated", {
           showId: room,
@@ -130,7 +176,35 @@ export class ChatGateway implements OnGatewayDisconnect {
 
     // Join the new room and update participants
     client.join(data.showId);
-    this.addParticipant(data.showId, client.id, data.username);
+
+    // Ensure we have a proper username, prefer DB lookup when userId is provided
+    let username = data.username?.trim();
+    if ((!username || username.length === 0) && data.userId) {
+      try {
+        const user = await this.userRepository.findOne({
+          where: { id: data.userId },
+          select: ["username"],
+        });
+        username = user?.username || `User${data.userId}`;
+      } catch {
+        username = `User${data.userId}`;
+      }
+    }
+    if (!username) username = "Unknown";
+
+    this.addParticipant(data.showId, client.id, username, data.userId);
+
+    // Update database if user has an ID
+    if (data.userId) {
+      try {
+        await this.showsService.joinShow({
+          showId: data.showId,
+          userId: data.userId,
+        });
+      } catch (error) {
+        console.error("Failed to update database on join:", error);
+      }
+    }
 
     client.emit("joinedShow", { showId: data.showId });
 
@@ -168,12 +242,12 @@ export class ChatGateway implements OnGatewayDisconnect {
   }
 
   @SubscribeMessage("leaveShow")
-  handleLeaveShow(
+  async handleLeaveShow(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { showId: string }
-  ): void {
+    @MessageBody() data: { showId: string; userId?: number }
+  ): Promise<void> {
     client.leave(data.showId);
-    this.removeParticipant(data.showId, client.id);
+    await this.handleLeaveRoom(data.showId, client.id);
     client.emit("leftShow", { showId: data.showId });
 
     // Broadcast participants update globally
@@ -196,8 +270,8 @@ export class ChatGateway implements OnGatewayDisconnect {
     });
   }
 
-  handleDisconnect(client: Socket) {
-    this.removeParticipantFromAll(client);
+  async handleDisconnect(client: Socket) {
+    await this.removeParticipantFromAll(client);
   }
 
   @SubscribeMessage("updateUsername")

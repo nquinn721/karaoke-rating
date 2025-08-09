@@ -1,12 +1,24 @@
 import { Box, CircularProgress, Container } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import AdminPage from "./components/AdminPage";
+import HistoryPage from "./components/HistoryPage";
 import HomePage from "./components/HomePage";
 import ShowPage from "./components/ShowPage";
 import UsernameModal from "./components/UsernameModal";
 import { rootStore } from "./stores/RootStore";
+
+// Small wrapper to require admin access for a route
+const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { authStore } = rootStore;
+  if (!authStore.isAuthenticated || !authStore.user?.isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
 
 const App: React.FC = observer(() => {
   const { userStore, showsStore, chatStore, authStore } = rootStore;
@@ -22,13 +34,13 @@ const App: React.FC = observer(() => {
   // Show loading spinner while checking for saved authentication
   if (authStore.isInitializing) {
     return (
-      <Box 
-        sx={{ 
-          minHeight: "100vh", 
+      <Box
+        sx={{
+          minHeight: "100vh",
           bgcolor: "background.default",
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <CircularProgress size={60} />
@@ -48,10 +60,20 @@ const App: React.FC = observer(() => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/show/:id" element={<ShowPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route
+            path="/admin"
+            element={
+              <RequireAdmin>
+                <AdminPage />
+              </RequireAdmin>
+            }
+          />
+          <Route path="/history" element={<HistoryPage />} />
         </Routes>
 
-        {!userStore.isAuthenticated && !authStore.isInitializing && <UsernameModal />}
+        {!userStore.isAuthenticated && !authStore.isInitializing && (
+          <UsernameModal />
+        )}
       </Container>
     </Box>
   );

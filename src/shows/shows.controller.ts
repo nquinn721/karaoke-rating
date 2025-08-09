@@ -10,11 +10,12 @@ import {
 import {
   CreateShowDto,
   JoinShowDto,
+  LeaveShowDto,
   QueueItem,
   RatePerformanceDto,
   Rating,
-  UpdateCurrentPerformerDto,
   Show,
+  UpdateCurrentPerformerDto,
 } from "./shows.interface";
 import { ShowsService } from "./shows.service";
 
@@ -42,12 +43,23 @@ export class ShowsController {
     return this.showsService.joinShow(joinShowDto);
   }
 
+  @Post("leave")
+  async leaveShow(
+    @Body() leaveShowDto: LeaveShowDto
+  ): Promise<Show | undefined> {
+    return this.showsService.leaveShow(leaveShowDto);
+  }
+
   @Patch(":id/current-performer")
   async updateCurrentPerformer(
     @Param("id") id: string,
     @Body() body: UpdateCurrentPerformerDto
   ): Promise<Show | undefined> {
-    return this.showsService.updateCurrentPerformer(id, body.singerId, body.song);
+    return this.showsService.updateCurrentPerformer(
+      id,
+      body.singerId,
+      body.song
+    );
   }
 
   @Post("rate")

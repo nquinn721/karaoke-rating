@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { ChatGateway } from "../chat/chat.gateway";
@@ -8,6 +8,7 @@ import { Show } from "./entities/show.entity";
 import {
   CreateShowDto,
   JoinShowDto,
+  LeaveShowDto,
   QueueItem,
   RatePerformanceDto,
   Rating as RatingInterface,
@@ -23,24 +24,25 @@ export class ShowsService {
     private readonly ratingRepository: Repository<Rating>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway: ChatGateway
   ) {}
 
   private async getUsernameById(userId: number): Promise<string> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: ['username']
+      select: ["username"],
     });
-    return user?.username || 'Unknown User';
+    return user?.username || "Unknown User";
   }
 
   private async getUsernamesByIds(userIds: number[]): Promise<string[]> {
     if (!userIds || userIds.length === 0) return [];
     const users = await this.userRepository.find({
       where: { id: In(userIds) },
-      select: ['username']
+      select: ["username"],
     });
-    return users.map(user => user.username);
+    return users.map((user) => user.username);
   }
 
   async createShow(createShowDto: CreateShowDto): Promise<ShowInterface> {
@@ -54,7 +56,9 @@ export class ShowsService {
     const savedShow = await this.showRepository.save(show);
 
     // Convert to interface format
-    const participantNames = await this.getUsernamesByIds(savedShow.participants || []);
+    const participantNames = await this.getUsernamesByIds(
+      savedShow.participants || []
+    );
     const showInterface: ShowInterface = {
       id: savedShow.id.toString(),
       name: savedShow.name,
@@ -165,6 +169,30 @@ export class ShowsService {
     }
 
     return this.getShow(joinShowDto.showId);
+  }
+
+  async leaveShow(
+    leaveShowDto: LeaveShowDto
+  ): Promise<ShowInterface | undefined> {
+    const show = await this.showRepository.findOne({
+      where: { id: parseInt(leaveShowDto.showId) },
+    });
+
+    if (!show) return undefined;
+
+    const participants = show.participants || [];
+    const index = participants.indexOf(leaveShowDto.userId);
+    if (index > -1) {
+      participants.splice(index, 1);
+      show.participants = participants;
+      await this.showRepository.save(show);
+
+      // Broadcast shows update
+      const allShows = await this.getAllShows();
+      this.chatGateway.server.emit("showsUpdated", allShows);
+    }
+
+    return this.getShow(leaveShowDto.showId);
   }
 
   async updateCurrentPerformer(

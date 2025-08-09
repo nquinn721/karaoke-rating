@@ -138,7 +138,10 @@ export class ChatStore {
     const user = userJson ? JSON.parse(userJson) : null;
     const userId = user?.id;
 
-    this.socket.emit("joinShow", userId ? { showId, userId } : { showId, username });
+    this.socket.emit(
+      "joinShow",
+      userId ? { showId, userId } : { showId, username }
+    );
   }
 
   updateUsername(username: string) {
@@ -156,7 +159,11 @@ export class ChatStore {
   leaveShow(showId: string) {
     if (!this.socket) return;
 
-    this.socket.emit("leaveShow", { showId });
+    const userJson = localStorage.getItem("user_data");
+    const user = userJson ? JSON.parse(userJson) : null;
+    const userId = user?.id;
+
+    this.socket.emit("leaveShow", userId ? { showId, userId } : { showId });
     this.clearMessages();
   }
 

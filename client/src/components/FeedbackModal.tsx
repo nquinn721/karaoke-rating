@@ -93,7 +93,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = observer(
             </Alert>
           )}
 
-          <FormControl fullWidth sx={{ mb: 2 }}>
+          <FormControl fullWidth sx={{ mt: "5px", mb: 2 }}>
             <InputLabel>Feedback Type</InputLabel>
             <Select
               value={type}
