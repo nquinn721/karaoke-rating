@@ -9,10 +9,13 @@ import { MusicModule } from "./music/music.module";
 import { RatingModule } from "./rating/rating.module";
 import { ShowsModule } from "./shows/shows.module";
 import { UserModule } from "./user/user.module";
+import { AuthModule } from "./auth/auth.module";
+import { FeedbackModule } from "./feedback/feedback.module";
 // Entities
 import { Rating } from "./rating/entities/rating.entity";
 import { Show } from "./shows/entities/show.entity";
 import { User } from "./user/entities/user.entity";
+import { Feedback } from "./feedback/entities/feedback.entity";
 
 @Module({
   imports: [
@@ -34,8 +37,8 @@ import { User } from "./user/entities/user.entity";
       username: process.env.DB_USERNAME || "admin",
       password: process.env.DB_PASSWORD || "password",
       database: process.env.DB_DATABASE || "karaoke",
-      entities: [User, Show, Rating], // Database entities
-      synchronize: true, // Temporarily enabled to create initial tables
+      entities: [User, Show, Rating, Feedback], // Database entities
+      synchronize: true, // Enable sync for production to create tables
       ssl: process.env.NODE_ENV === "production" ? false : false, // No SSL needed for Unix socket
     }),
     // Only serve static files in production
@@ -51,6 +54,8 @@ import { User } from "./user/entities/user.entity";
     ChatModule,
     UserModule,
     RatingModule,
+    AuthModule,
+    FeedbackModule,
     MusicModule,
   ],
   controllers: [AppController],

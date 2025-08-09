@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
-import { RatingService, CreateRatingDto } from './rating.service';
+import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { CreateRatingDto, RatingService } from "./rating.service";
 
-@Controller('api/ratings')
+@Controller("api/ratings")
 export class RatingController {
   constructor(private readonly ratingService: RatingService) {}
 
@@ -11,20 +11,20 @@ export class RatingController {
     return { success: true, rating };
   }
 
-  @Get('show/:showId')
-  async getRatingsByShow(@Param('showId') showId: number) {
+  @Get("show/:showId")
+  async getRatingsByShow(@Param("showId") showId: number) {
     const ratings = await this.ratingService.getRatingsByShow(showId);
     return { success: true, ratings };
   }
 
-  @Get('user/:username')
-  async getRatingsByUser(@Param('username') username: string) {
+  @Get("user/:username")
+  async getRatingsByUser(@Param("username") username: string) {
     const ratings = await this.ratingService.getRatingsByUser(username);
     return { success: true, ratings };
   }
 
-  @Get('show/:showId/average')
-  async getAverageRating(@Param('showId') showId: number) {
+  @Get("show/:showId/average")
+  async getAverageRating(@Param("showId") showId: number) {
     const average = await this.ratingService.getAverageRatingForShow(showId);
     return { success: true, average };
   }

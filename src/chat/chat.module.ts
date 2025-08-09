@@ -1,11 +1,9 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { ChatGateway } from "./chat.gateway";
-// import { FeedbackModule } from "../feedback/feedback.module"; // Temporarily disabled
+import { FeedbackModule } from "../feedback/feedback.module";
 
 @Module({
-  imports: [
-    /* forwardRef(() => FeedbackModule) */
-  ], // Temporarily disabled
+  imports: [forwardRef(() => FeedbackModule)],
   providers: [ChatGateway],
   exports: [ChatGateway],
 })

@@ -1,13 +1,33 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
-import { UserService } from './user.service';
+import { Body, Controller, Get, Param, Post, Headers } from "@nestjs/common";
+import { UserService } from "./user.service";
 
-@Controller('api/users')
+@Controller("api/users")
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post('login')
+  @Post("login")
   async login(@Body() body: { username: string }) {
-    const user = await this.userService.findOrCreateUser(body.username);
+    if (!body.username || body.username.trim().length === 0) {
+      return { success: false, message: "Username is required" };
+    }
+    
+    const loginResponse = await this.userService.loginOrRegister(body.username.trim());
+    return loginResponse;
+  }
+
+  @Post("verify")
+  async verifyToken(@Headers('authorization') authHeader: string) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { success: false, message: "Invalid authorization header" };
+    }
+    
+    const token = authHeader.substring(7); // Remove "Bearer "
+    const user = await this.userService.verifyToken(token);
+    
+    if (!user) {
+      return { success: false, message: "Invalid or expired token" };
+    }
+    
     return {
       success: true,
       user: {
@@ -18,11 +38,11 @@ export class UserController {
     };
   }
 
-  @Get(':username')
-  async getUser(@Param('username') username: string) {
+  @Get(":username")
+  async getUser(@Param("username") username: string) {
     const user = await this.userService.findByUsername(username);
     if (!user) {
-      return { success: false, message: 'User not found' };
+      return { success: false, message: "User not found" };
     }
     return { success: true, user };
   }

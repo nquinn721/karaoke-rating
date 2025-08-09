@@ -1,7 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Rating } from '../../rating/entities/rating.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
+import { Rating } from "../../rating/entities/rating.entity";
 
-@Entity('shows')
+@Entity("shows")
 export class Show {
   @PrimaryGeneratedColumn()
   id: number;
@@ -12,10 +19,10 @@ export class Show {
   @Column({ length: 100 })
   venue: string;
 
-  @Column({ type: 'json', nullable: true })
+  @Column({ type: "json", nullable: true })
   participants: string[]; // Array of usernames
 
-  @Column({ type: 'json', nullable: true })
+  @Column({ type: "json", nullable: true })
   queue: any[]; // Queue items for karaoke
 
   @CreateDateColumn()

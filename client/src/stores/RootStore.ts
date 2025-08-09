@@ -4,6 +4,7 @@ import { ChatStore } from "./ChatStore";
 import { FeedbackStore } from "./FeedbackStore";
 import { ShowsStore } from "./ShowsStore";
 import { UserStore } from "./UserStore";
+import { AuthStore } from "./AuthStore";
 
 export class RootStore {
   baseAPI = new BaseAPIStore();
@@ -11,6 +12,7 @@ export class RootStore {
   showsStore = new ShowsStore(this.baseAPI);
   chatStore = new ChatStore(this.baseAPI);
   feedbackStore = new FeedbackStore();
+  authStore = new AuthStore();
 
   constructor() {
     console.log("RootStore initialized", {

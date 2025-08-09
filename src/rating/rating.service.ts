@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Rating } from './entities/rating.entity';
-import { UserService } from '../user/user.service';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { UserService } from "../user/user.service";
+import { Rating } from "./entities/rating.entity";
 
 export interface CreateRatingDto {
   username: string;
@@ -18,12 +18,14 @@ export class RatingService {
   constructor(
     @InjectRepository(Rating)
     private ratingRepository: Repository<Rating>,
-    private userService: UserService,
+    private userService: UserService
   ) {}
 
   async createRating(createRatingDto: CreateRatingDto): Promise<Rating> {
-    const user = await this.userService.findOrCreateUser(createRatingDto.username);
-    
+    const user = await this.userService.findOrCreateUser(
+      createRatingDto.username
+    );
+
     const rating = this.ratingRepository.create({
       ...createRatingDto,
       userId: user.id,
@@ -35,8 +37,8 @@ export class RatingService {
   async getRatingsByShow(showId: number): Promise<Rating[]> {
     return this.ratingRepository.find({
       where: { showId },
-      relations: ['user', 'show'],
-      order: { createdAt: 'DESC' }
+      relations: ["user", "show"],
+      order: { createdAt: "DESC" },
     });
   }
 
@@ -46,16 +48,16 @@ export class RatingService {
 
     return this.ratingRepository.find({
       where: { userId: user.id },
-      relations: ['show'],
-      order: { createdAt: 'DESC' }
+      relations: ["show"],
+      order: { createdAt: "DESC" },
     });
   }
 
   async getAverageRatingForShow(showId: number): Promise<number> {
     const result = await this.ratingRepository
-      .createQueryBuilder('rating')
-      .select('AVG(rating.score)', 'average')
-      .where('rating.showId = :showId', { showId })
+      .createQueryBuilder("rating")
+      .select("AVG(rating.score)", "average")
+      .where("rating.showId = :showId", { showId })
       .getRawOne();
 
     return parseFloat(result.average) || 0;
@@ -63,8 +65,8 @@ export class RatingService {
 
   async getAllRatings(): Promise<Rating[]> {
     return this.ratingRepository.find({
-      relations: ['user', 'show'],
-      order: { createdAt: 'DESC' }
+      relations: ["user", "show"],
+      order: { createdAt: "DESC" },
     });
   }
 }
