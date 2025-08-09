@@ -79,13 +79,23 @@ export class UserService {
 
   async changeUsername(oldUsername: string, newUsername: string): Promise<{ success: boolean; message: string; user?: any }> {
     // Check if old user exists
-    const oldUser = await this.userRepository.findOne({
+    let oldUser = await this.userRepository.findOne({
       where: { username: oldUsername },
       relations: ["ratings"],
     });
 
+    // If old user doesn't exist, create them first (treat as initial registration)
     if (!oldUser) {
-      return { success: false, message: "Current username not found" };
+      oldUser = this.userRepository.create({
+        username: oldUsername,
+        authToken: this.authService.generateAuthToken(null, oldUsername),
+        isAdmin: false,
+      });
+      oldUser = await this.userRepository.save(oldUser);
+      
+      // Update the auth token with the actual user ID
+      oldUser.authToken = this.authService.generateAuthToken(oldUser.id, oldUsername);
+      oldUser = await this.userRepository.save(oldUser);
     }
 
     // Check if new username already exists
@@ -93,8 +103,23 @@ export class UserService {
       where: { username: newUsername },
     });
 
-    if (existingUser) {
+    if (existingUser && existingUser.id !== oldUser.id) {
       return { success: false, message: "Username already taken" };
+    }
+
+    // If new username is the same as old username, just return the user
+    if (oldUsername === newUsername) {
+      return {
+        success: true,
+        message: "Username verified",
+        user: {
+          id: oldUser.id,
+          username: oldUser.username,
+          createdAt: oldUser.createdAt,
+          isAdmin: oldUser.isAdmin,
+          authToken: oldUser.authToken,
+        },
+      };
     }
 
     // Update username
