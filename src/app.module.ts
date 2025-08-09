@@ -31,10 +31,7 @@ import { ShowsModule } from "./shows/shows.module";
       database: process.env.DB_DATABASE || "karaoke",
       entities: [], // Will add entities back gradually
       synchronize: process.env.NODE_ENV !== "production", // Only sync in development
-      ssl:
-        process.env.NODE_ENV === "production"
-          ? { rejectUnauthorized: false }
-          : false,
+      ssl: process.env.NODE_ENV === "production" ? false : false, // No SSL needed for Unix socket
     }),
     // Only serve static files in production
     ...(process.env.NODE_ENV === "production"
