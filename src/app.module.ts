@@ -5,7 +5,7 @@ import { join } from "path";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { ChatModule } from "./chat/chat.module";
-import { Feedback } from "./feedback/entities/feedback.entity";
+// import { Feedback } from "./feedback/entities/feedback.entity"; // Temporarily disabled
 // import { FeedbackModule } from "./feedback/feedback.module"; // Temporarily disabled
 import { MusicModule } from "./music/music.module";
 import { ShowsModule } from "./shows/shows.module";

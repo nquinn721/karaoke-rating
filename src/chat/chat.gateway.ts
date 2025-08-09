@@ -9,7 +9,7 @@ import {
 import { Server, Socket } from "socket.io";
 import { ChatMessage } from "./chat.interface";
 import { Inject, forwardRef } from "@nestjs/common";
-import { FeedbackService } from "../feedback/feedback.service";
+// import { FeedbackService } from "../feedback/feedback.service"; // Temporarily disabled
 
 @WebSocketGateway({
   cors: {
@@ -21,8 +21,8 @@ export class ChatGateway implements OnGatewayDisconnect {
   server: Server;
 
   constructor(
-    @Inject(forwardRef(() => FeedbackService))
-    private readonly feedbackService: FeedbackService,
+    // @Inject(forwardRef(() => FeedbackService))
+    // private readonly feedbackService: FeedbackService, // Temporarily disabled
   ) {}
 
   private messages: ChatMessage[] = [];
@@ -95,10 +95,11 @@ export class ChatGateway implements OnGatewayDisconnect {
     }));
     client.emit("adminActiveUsers", users);
 
-    // Send all feedback as initial payload
+    // Send all feedback as initial payload (temporarily disabled)
     try {
-      const all = await this.feedbackService.getAllFeedback();
-      client.emit("adminFeedbackAll", all);
+      // const all = await this.feedbackService.getAllFeedback();
+      // client.emit("adminFeedbackAll", all);
+      client.emit("adminFeedbackAll", []); // Empty array since feedback is disabled
     } catch (e) {
       // ignore
       client.emit("adminFeedbackAll", []);
