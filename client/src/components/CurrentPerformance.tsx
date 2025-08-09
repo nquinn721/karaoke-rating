@@ -224,20 +224,23 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                     }
                   />
                 )}
-                renderOption={(props, option) => (
-                  <Box component="li" {...props}>
-                    <Box sx={{ width: "100%" }}>
-                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                        {option.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        by {option.artist}
-                        {option.year && ` (${option.year})`}
-                        {option.album && ` • ${option.album}`}
-                      </Typography>
+                renderOption={(props, option) => {
+                  const { key, ...otherProps } = props;
+                  return (
+                    <Box component="li" key={key} {...otherProps}>
+                      <Box sx={{ width: "100%" }}>
+                        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                          {option.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          by {option.artist}
+                          {option.year && ` (${option.year})`}
+                          {option.album && ` • ${option.album}`}
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  );
+                }}
               />
               <Box sx={{ display: "flex", gap: 1 }}>
                 <Button
@@ -368,26 +371,29 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                     }}
                   />
                 )}
-                renderOption={(props, option) => (
-                  <Box component="li" {...props}>
-                    <Box sx={{ width: "100%" }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "bold", fontSize: "0.8rem" }}
-                      >
-                        {option.title}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ fontSize: "0.7rem" }}
-                      >
-                        by {option.artist}
-                        {option.year && ` (${option.year})`}
-                      </Typography>
+                renderOption={(props, option) => {
+                  const { key, ...otherProps } = props;
+                  return (
+                    <Box component="li" key={key} {...otherProps}>
+                      <Box sx={{ width: "100%" }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "bold", fontSize: "0.8rem" }}
+                        >
+                          {option.title}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: "0.7rem" }}
+                        >
+                          by {option.artist}
+                          {option.year && ` (${option.year})`}
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  );
+                }}
               />
               <Button
                 variant="contained"

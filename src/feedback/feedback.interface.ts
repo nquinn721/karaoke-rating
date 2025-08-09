@@ -1,22 +1,24 @@
+import { FeedbackType, FeedbackStatus } from './entities/feedback.entity';
+
 export interface Feedback {
   id: string;
   username: string;
-  type: "bug" | "feature" | "improvement" | "general";
+  type: FeedbackType;
   subject: string;
   message: string;
-  status: "pending" | "reviewed" | "resolved" | "rejected";
+  status: FeedbackStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface CreateFeedbackDto {
   username: string;
-  type: "bug" | "feature" | "improvement" | "general";
+  type: FeedbackType;
   subject: string;
   message: string;
 }
 
 export interface UpdateFeedbackStatusDto {
   id: string;
-  status: "pending" | "reviewed" | "resolved" | "rejected";
+  status: FeedbackStatus;
 }

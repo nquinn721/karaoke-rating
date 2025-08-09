@@ -25,7 +25,7 @@ import {
   Typography,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { rootStore } from "../stores/RootStore";
 import QRScanner from "./QRScanner";
@@ -34,6 +34,7 @@ import UserMenu from "./UserMenu";
 const HomePage: React.FC = observer(() => {
   const { showsStore, userStore } = rootStore;
   const navigate = useNavigate();
+  const showNameInputRef = useRef<HTMLInputElement>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addModalTab, setAddModalTab] = useState(0);
   const [newShowName, setNewShowName] = useState("");
@@ -79,6 +80,20 @@ const HomePage: React.FC = observer(() => {
       } catch (error) {
         console.error("Failed to create show:", error);
       }
+    }
+  };
+
+  const handleOpenAddModal = (tab: number = 0) => {
+    setAddModalTab(tab);
+    setAddModalOpen(true);
+
+    // Focus the show name input after modal opens (only for create new tab)
+    if (tab === 0) {
+      setTimeout(() => {
+        if (showNameInputRef.current) {
+          showNameInputRef.current.focus();
+        }
+      }, 100);
     }
   };
 
@@ -230,20 +245,14 @@ const HomePage: React.FC = observer(() => {
               >
                 <Button
                   variant="contained"
-                  onClick={() => {
-                    setAddModalOpen(true);
-                    setAddModalTab(0);
-                  }}
+                  onClick={() => handleOpenAddModal(0)}
                 >
                   Create a Show
                 </Button>
                 <Button
                   variant="outlined"
                   startIcon={<QrCodeScannerIcon />}
-                  onClick={() => {
-                    setAddModalOpen(true);
-                    setAddModalTab(1);
-                  }}
+                  onClick={() => handleOpenAddModal(1)}
                 >
                   Join by QR
                 </Button>
@@ -342,7 +351,7 @@ const HomePage: React.FC = observer(() => {
           right: { xs: 20, sm: 16 },
           zIndex: 1000,
         }}
-        onClick={() => setAddModalOpen(true)}
+        onClick={() => handleOpenAddModal(0)}
       >
         <AddIcon />
       </Fab>
@@ -366,6 +375,7 @@ const HomePage: React.FC = observer(() => {
           {addModalTab === 0 && (
             <Box sx={{ mt: 2 }}>
               <TextField
+                inputRef={showNameInputRef}
                 fullWidth
                 label="Show Name"
                 value={newShowName}

@@ -14,7 +14,8 @@ COPY tsconfig*.json ./
 COPY nest-cli.json ./
 RUN npm install
 COPY src/ ./src/
-RUN npm run build
+# Build server without triggering root postbuild (which tries to build client)
+RUN npx nest build
 
 # Production stage
 FROM node:18-alpine AS production

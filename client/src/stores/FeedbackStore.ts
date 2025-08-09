@@ -1,20 +1,34 @@
 import { makeObservable, observable, action } from 'mobx';
 import { BaseAPIStore } from './BaseAPIStore';
 
+export enum FeedbackType {
+  BUG = 'bug',
+  FEATURE = 'feature',
+  IMPROVEMENT = 'improvement',
+  GENERAL = 'general',
+}
+
+export enum FeedbackStatus {
+  PENDING = 'pending',
+  REVIEWED = 'reviewed',
+  RESOLVED = 'resolved',
+  REJECTED = 'rejected',
+}
+
 export interface Feedback {
   id: string;
   username: string;
-  type: 'bug' | 'feature' | 'improvement' | 'general';
+  type: FeedbackType;
   subject: string;
   message: string;
-  status: 'pending' | 'reviewed' | 'resolved' | 'rejected';
+  status: FeedbackStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface CreateFeedbackDto {
   username: string;
-  type: 'bug' | 'feature' | 'improvement' | 'general';
+  type: FeedbackType;
   subject: string;
   message: string;
 }

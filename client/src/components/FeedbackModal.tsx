@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { observer } from 'mobx-react-lite';
 import { rootStore } from '../stores/RootStore';
+import { FeedbackType } from '../stores/FeedbackStore';
 
 interface FeedbackModalProps {
   open: boolean;
@@ -25,7 +26,7 @@ interface FeedbackModalProps {
 
 const FeedbackModal: React.FC<FeedbackModalProps> = observer(({ open, onClose }) => {
   const { feedbackStore, userStore } = rootStore;
-  const [type, setType] = useState<'bug' | 'feature' | 'improvement' | 'general'>('general');
+  const [type, setType] = useState<FeedbackType>(FeedbackType.GENERAL);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -59,7 +60,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = observer(({ open, onClose })
   };
 
   const handleClose = () => {
-    setType('general');
+    setType(FeedbackType.GENERAL);
     setSubject('');
     setMessage('');
     setError('');
@@ -101,12 +102,12 @@ const FeedbackModal: React.FC<FeedbackModalProps> = observer(({ open, onClose })
           <Select
             value={type}
             label="Feedback Type"
-            onChange={(e) => setType(e.target.value as any)}
+            onChange={(e) => setType(e.target.value as FeedbackType)}
           >
-            <MenuItem value="bug">🐛 Bug Report</MenuItem>
-            <MenuItem value="feature">✨ Feature Request</MenuItem>
-            <MenuItem value="improvement">🔧 Improvement</MenuItem>
-            <MenuItem value="general">💬 General Feedback</MenuItem>
+            <MenuItem value={FeedbackType.BUG}>🐛 Bug Report</MenuItem>
+            <MenuItem value={FeedbackType.FEATURE}>✨ Feature Request</MenuItem>
+            <MenuItem value={FeedbackType.IMPROVEMENT}>🔧 Improvement</MenuItem>
+            <MenuItem value={FeedbackType.GENERAL}>💬 General Feedback</MenuItem>
           </Select>
         </FormControl>
 

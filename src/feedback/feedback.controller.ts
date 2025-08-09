@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Post, Put, Query } from "@nestjs/common";
 import {
   CreateFeedbackDto,
-  Feedback,
   UpdateFeedbackStatusDto,
 } from "./feedback.interface";
+import { Feedback } from "./entities/feedback.entity";
 import { FeedbackService } from "./feedback.service";
 
 @Controller("api/feedback")
@@ -30,11 +30,5 @@ export class FeedbackController {
     @Body() updateDto: UpdateFeedbackStatusDto
   ): Promise<Feedback> {
     return this.feedbackService.updateFeedbackStatus(updateDto);
-  }
-
-  @Post("init-db")
-  async initializeDatabase(): Promise<{ message: string }> {
-    await this.feedbackService.initializeDatabase();
-    return { message: "Database initialized successfully" };
   }
 }

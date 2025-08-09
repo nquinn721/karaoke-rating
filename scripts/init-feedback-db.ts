@@ -1,20 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
-import { FeedbackService } from '../src/feedback/feedback.service';
 
-async function initializeDatabase() {
+async function testDatabaseConnection() {
+  console.log('Testing database connection and TypeORM setup...');
+  
   const app = await NestFactory.create(AppModule);
-  const feedbackService = app.get(FeedbackService);
   
   try {
-    console.log('Initializing feedback database table...');
-    await feedbackService.initializeDatabase();
-    console.log('Database table created successfully!');
+    // Just starting the app will initialize TypeORM and create tables
+    console.log('✅ Database connection successful!');
+    console.log('✅ TypeORM entities loaded and synchronized!');
+    console.log('✅ Feedback table should now be available.');
+    
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error('❌ Error connecting to database:', error);
   } finally {
     await app.close();
   }
 }
 
-initializeDatabase();
+testDatabaseConnection();

@@ -5,6 +5,12 @@ body {
     "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent horizontal scrolling */
+  overflow-x: hidden;
+  /* Improve touch scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent zoom on iOS when input is focused */
+  -webkit-text-size-adjust: 100%;
 }
 
 code {
@@ -14,4 +20,13 @@ code {
 
 #root {
   min-height: 100vh;
+  /* Ensure root element handles overflow properly on mobile */
+  overflow-x: hidden;
+}
+
+/* Improve mobile input handling */
+input,
+textarea {
+  /* Prevent zoom on iOS when input is focused */
+  font-size: 16px !important;
 }

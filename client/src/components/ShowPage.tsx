@@ -33,6 +33,7 @@ const ShowPage: React.FC = observer(() => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [chatMessage, setChatMessage] = useState("");
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (id) {
@@ -47,6 +48,27 @@ const ShowPage: React.FC = observer(() => {
       }
     };
   }, [id]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatStore.messages]);
+
+  // Handle mobile keyboard appearance
+  useEffect(() => {
+    const handleResize = () => {
+      if (messagesEndRef.current && activeTab === 1) {
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [activeTab]);
 
   const handleSubmitRating = async () => {
     if (
@@ -274,16 +296,19 @@ const ShowPage: React.FC = observer(() => {
 
       {activeTab === 1 && (
         <Box>
-          {/* Clean chat container */}
+          {/* Clean chat container with mobile keyboard handling */}
           <Paper
             sx={{
-              height: "450px",
+              height: { xs: "calc(100vh - 280px)", sm: "450px" },
               mb: 2,
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
               bgcolor: "background.paper",
               border: "1px solid rgba(255,255,255,0.1)",
+              // Ensure chat stays above keyboard on mobile
+              position: "relative",
+              zIndex: 1,
             }}
           >
             {/* Messages area */}
@@ -453,6 +478,8 @@ const ShowPage: React.FC = observer(() => {
                       </Box>
                     );
                   })}
+                  {/* Invisible scroll target */}
+                  <div ref={messagesEndRef} />
                 </Box>
               )}
             </Box>
@@ -483,8 +510,22 @@ const ShowPage: React.FC = observer(() => {
                   handleSendMessage();
                 }
               }}
+              onFocus={() => {
+                // Scroll to bottom when input is focused (mobile keyboard appears)
+                setTimeout(() => {
+                  if (messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({
+                      behavior: "smooth",
+                    });
+                  }
+                }, 300); // Wait for keyboard animation
+              }}
               variant="outlined"
               size="small"
+              inputProps={{
+                enterKeyHint: "send", // Shows "Send" button on mobile keyboards
+                inputMode: "text",
+              }}
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 1.5,
