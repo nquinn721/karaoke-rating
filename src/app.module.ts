@@ -5,10 +5,14 @@ import { join } from "path";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { ChatModule } from "./chat/chat.module";
-// import { Feedback } from "./feedback/entities/feedback.entity"; // Temporarily disabled
-// import { FeedbackModule } from "./feedback/feedback.module"; // Temporarily disabled
 import { MusicModule } from "./music/music.module";
+import { RatingModule } from "./rating/rating.module";
 import { ShowsModule } from "./shows/shows.module";
+import { UserModule } from "./user/user.module";
+// Entities
+import { Rating } from "./rating/entities/rating.entity";
+import { Show } from "./shows/entities/show.entity";
+import { User } from "./user/entities/user.entity";
 
 @Module({
   imports: [
@@ -30,7 +34,7 @@ import { ShowsModule } from "./shows/shows.module";
       username: process.env.DB_USERNAME || "admin",
       password: process.env.DB_PASSWORD || "password",
       database: process.env.DB_DATABASE || "karaoke",
-      entities: [], // Will add entities back gradually
+      entities: [User, Show, Rating], // Database entities
       synchronize: process.env.NODE_ENV !== "production", // Only sync in development
       ssl: process.env.NODE_ENV === "production" ? false : false, // No SSL needed for Unix socket
     }),
@@ -45,7 +49,8 @@ import { ShowsModule } from "./shows/shows.module";
       : []),
     ShowsModule,
     ChatModule,
-    // FeedbackModule, // Temporarily disabled while database is disabled
+    UserModule,
+    RatingModule,
     MusicModule,
   ],
   controllers: [AppController],
