@@ -33,7 +33,7 @@ import UserMenu from "./UserMenu";
 import { ChangeUsernameModal } from "./ChangeUsernameModal";
 
 const HomePage: React.FC = observer(() => {
-  const { showsStore, userStore, authStore } = rootStore;
+  const { showsStore, userStore } = rootStore;
   const navigate = useNavigate();
   const showNameInputRef = useRef<HTMLInputElement>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
