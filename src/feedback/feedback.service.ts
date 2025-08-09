@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import {
@@ -6,12 +6,15 @@ import {
   UpdateFeedbackStatusDto,
 } from "./feedback.interface";
 import { Feedback, FeedbackStatus } from "./entities/feedback.entity";
+import { ChatGateway } from "../chat/chat.gateway";
 
 @Injectable()
 export class FeedbackService {
   constructor(
     @InjectRepository(Feedback)
     private feedbackRepository: Repository<Feedback>,
+    @Inject(forwardRef(() => ChatGateway))
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   async createFeedback(
@@ -22,7 +25,14 @@ export class FeedbackService {
       status: FeedbackStatus.PENDING,
     });
 
-    return await this.feedbackRepository.save(feedback);
+    const saved = await this.feedbackRepository.save(feedback);
+
+    // notify admins via socket
+    try {
+      this.chatGateway.server.emit("adminFeedbackAdded", saved);
+    } catch {}
+
+    return saved;
   }
 
   async getAllFeedback(): Promise<Feedback[]> {
@@ -45,9 +55,16 @@ export class FeedbackService {
       status: updateDto.status,
     });
 
-    return await this.feedbackRepository.findOne({
+    const updated = await this.feedbackRepository.findOne({
       where: { id: updateDto.id },
     });
+
+    // notify admins via socket
+    try {
+      if (updated) this.chatGateway.server.emit("adminFeedbackUpdated", updated);
+    } catch {}
+
+    return updated;
   }
 
   async findById(id: string): Promise<Feedback> {

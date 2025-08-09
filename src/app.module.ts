@@ -12,21 +12,21 @@ import { ShowsModule } from "./shows/shows.module";
 
 @Module({
   imports: [
-    // Database configuration
-    TypeOrmModule.forRoot({
-      type: "mysql",
-      host: process.env.DB_HOST || "localhost",
-      port: parseInt(process.env.DB_PORT) || 3306,
-      username: process.env.DB_USERNAME || "admin",
-      password: process.env.DB_PASSWORD || "password",
-      database: process.env.DB_DATABASE || "karaoke",
-      entities: [Feedback],
-      synchronize: process.env.NODE_ENV !== "production", // Only sync in development
-      ssl:
-        process.env.NODE_ENV === "production"
-          ? { rejectUnauthorized: false }
-          : false,
-    }),
+    // Database configuration - temporarily disabled for testing
+    // TypeOrmModule.forRoot({
+    //   type: "mysql",
+    //   host: process.env.DB_HOST || "localhost",
+    //   port: parseInt(process.env.DB_PORT) || 3306,
+    //   username: process.env.DB_USERNAME || "admin",
+    //   password: process.env.DB_PASSWORD || "password",
+    //   database: process.env.DB_DATABASE || "karaoke",
+    //   entities: [Feedback],
+    //   synchronize: process.env.NODE_ENV !== "production", // Only sync in development
+    //   ssl:
+    //     process.env.NODE_ENV === "production"
+    //       ? { rejectUnauthorized: false }
+    //       : false,
+    // }),
     // Only serve static files in production
     ...(process.env.NODE_ENV === "production"
       ? [

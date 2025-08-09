@@ -34,6 +34,7 @@ export class ShowsStore {
       addToQueue: action,
       nextPerformance: action,
       removeQueueBySinger: action, // <-- Add action for removing queue by singer
+      removeQueueItem: action, // <-- Add action for removing a specific queue item
     });
   }
 
@@ -315,6 +316,35 @@ export class ShowsStore {
           this.currentShow.queue = (this.currentShow.queue || []).filter(
             (q) => q.singer !== singer
           ) as any;
+        }
+      });
+      return this.currentShow;
+    }
+  }
+
+  async removeQueueItem(showId: string, index: number) {
+    try {
+      const updated = await this.baseAPI.delete<Show>(
+        `/api/shows/${showId}/queue/item`,
+        { data: { index } }
+      );
+      runInAction(() => {
+        if (this.currentShow && this.currentShow.id === showId) {
+          this.currentShow.queue = updated.queue || ([] as any);
+        }
+        const i = this.shows.findIndex((s) => s.id === showId);
+        if (i !== -1) this.shows[i] = updated;
+      });
+      return updated;
+    } catch (error) {
+      // Fallback: remove locally by index
+      runInAction(() => {
+        if (this.currentShow && this.currentShow.id === showId) {
+          const q = (this.currentShow.queue || ([] as any)).slice();
+          if (index >= 0 && index < q.length) {
+            q.splice(index, 1);
+          }
+          (this.currentShow as any).queue = q as any;
         }
       });
       return this.currentShow;

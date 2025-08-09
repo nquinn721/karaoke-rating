@@ -2,6 +2,7 @@ import { Box, Container } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React from "react";
 import { Route, Routes } from "react-router-dom";
+import AdminPage from "./components/AdminPage";
 import HomePage from "./components/HomePage";
 import ShowPage from "./components/ShowPage";
 import UsernameModal from "./components/UsernameModal";
@@ -30,6 +31,7 @@ const App: React.FC = observer(() => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/show/:id" element={<ShowPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
 
         {!userStore.hasUsername && <UsernameModal />}
