@@ -28,9 +28,9 @@ import { observer } from "mobx-react-lite";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { rootStore } from "../stores/RootStore";
+import { ChangeUsernameModal } from "./ChangeUsernameModal";
 import QRScanner from "./QRScanner";
 import UserMenu from "./UserMenu";
-import { ChangeUsernameModal } from "./ChangeUsernameModal";
 
 const HomePage: React.FC = observer(() => {
   const { showsStore, userStore } = rootStore;
@@ -424,7 +424,7 @@ const HomePage: React.FC = observer(() => {
       </Dialog>
 
       {/* Username change modal */}
-      <ChangeUsernameModal 
+      <ChangeUsernameModal
         open={changeUsernameModalOpen}
         onClose={() => setChangeUsernameModalOpen(false)}
         currentUsername={userStore.username}

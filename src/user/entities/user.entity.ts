@@ -16,10 +16,10 @@ export class User {
   @Column({ unique: true, length: 50 })
   username: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   authToken: string; // Non-expiring OAuth token
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: "boolean", default: false })
   isAdmin: boolean; // Admin privileges
 
   @CreateDateColumn()
@@ -30,5 +30,8 @@ export class User {
 
   // Relations
   @OneToMany(() => Rating, (rating) => rating.user)
-  ratings: Rating[];
+  ratings: Rating[]; // Ratings given by this user
+
+  @OneToMany(() => Rating, (rating) => rating.performer)
+  ratingsReceived: Rating[]; // Ratings received by this user as performer
 }

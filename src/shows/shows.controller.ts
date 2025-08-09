@@ -13,6 +13,7 @@ import {
   QueueItem,
   RatePerformanceDto,
   Rating,
+  UpdateCurrentPerformerDto,
   Show,
 } from "./shows.interface";
 import { ShowsService } from "./shows.service";
@@ -44,9 +45,9 @@ export class ShowsController {
   @Patch(":id/current-performer")
   async updateCurrentPerformer(
     @Param("id") id: string,
-    @Body() body: { singer: string; song: string }
+    @Body() body: UpdateCurrentPerformerDto
   ): Promise<Show | undefined> {
-    return this.showsService.updateCurrentPerformer(id, body.singer, body.song);
+    return this.showsService.updateCurrentPerformer(id, body.singerId, body.song);
   }
 
   @Post("rate")
@@ -81,10 +82,10 @@ export class ShowsController {
   }
 
   @Delete(":id/queue/by-singer")
-  removeQueueBySinger(
+  async removeQueueBySinger(
     @Param("id") id: string,
     @Body() body: { singer: string }
-  ): Show | undefined {
+  ): Promise<Show | undefined> {
     return this.showsService.removeQueueBySinger(id, body.singer);
   }
 }

@@ -7,9 +7,9 @@ export interface Show {
   id: string;
   name: string;
   venue: "karafun" | "excess" | "dj steve";
-  currentSinger?: string;
+  currentSinger?: string; // Display name for interface
   currentSong?: string;
-  participants: string[];
+  participants: string[]; // Display names for interface
   ratings: Rating[];
   createdAt: Date;
   // New: upcoming performances queue
@@ -34,7 +34,12 @@ export interface CreateShowDto {
 
 export interface JoinShowDto {
   showId: string;
-  username: string;
+  userId: number; // Changed from username to userId
+}
+
+export interface UpdateCurrentPerformerDto {
+  singerId: number;
+  song: string;
 }
 
 export interface RatePerformanceDto {

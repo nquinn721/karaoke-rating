@@ -1,3 +1,4 @@
+import { Inject, forwardRef } from "@nestjs/common";
 import {
   ConnectedSocket,
   MessageBody,
@@ -7,9 +8,8 @@ import {
   WebSocketServer,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { ChatMessage } from "./chat.interface";
-import { Inject, forwardRef } from "@nestjs/common";
 import { FeedbackService } from "../feedback/feedback.service";
+import { ChatMessage } from "./chat.interface";
 
 @WebSocketGateway({
   cors: {
@@ -22,7 +22,7 @@ export class ChatGateway implements OnGatewayDisconnect {
 
   constructor(
     @Inject(forwardRef(() => FeedbackService))
-    private readonly feedbackService: FeedbackService,
+    private readonly feedbackService: FeedbackService
   ) {}
 
   private messages: ChatMessage[] = [];

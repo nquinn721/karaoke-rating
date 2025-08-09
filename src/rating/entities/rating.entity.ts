@@ -21,9 +21,6 @@ export class Rating {
   @Column({ type: "text", nullable: true })
   comment: string; // Optional comment
 
-  @Column({ length: 100, nullable: true })
-  performerName: string; // Name of the performer being rated
-
   @Column({ length: 200, nullable: true })
   songTitle: string; // Song that was performed
 
@@ -40,6 +37,15 @@ export class Rating {
 
   @Column()
   userId: number;
+
+  @ManyToOne(() => User, (user) => user.ratingsReceived, {
+    onDelete: "CASCADE",
+  })
+  @JoinColumn({ name: "performerId" })
+  performer: User;
+
+  @Column()
+  performerId: number;
 
   @ManyToOne(() => Show, (show) => show.ratings, { onDelete: "CASCADE" })
   @JoinColumn({ name: "showId" })

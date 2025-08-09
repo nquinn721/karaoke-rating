@@ -4,18 +4,18 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { join } from "path";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import { AuthModule } from "./auth/auth.module";
 import { ChatModule } from "./chat/chat.module";
+import { FeedbackModule } from "./feedback/feedback.module";
 import { MusicModule } from "./music/music.module";
 import { RatingModule } from "./rating/rating.module";
 import { ShowsModule } from "./shows/shows.module";
 import { UserModule } from "./user/user.module";
-import { AuthModule } from "./auth/auth.module";
-import { FeedbackModule } from "./feedback/feedback.module";
 // Entities
+import { Feedback } from "./feedback/entities/feedback.entity";
 import { Rating } from "./rating/entities/rating.entity";
 import { Show } from "./shows/entities/show.entity";
 import { User } from "./user/entities/user.entity";
-import { Feedback } from "./feedback/entities/feedback.entity";
 
 @Module({
   imports: [

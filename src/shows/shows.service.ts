@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import { ChatGateway } from "../chat/chat.gateway";
 import { Rating } from "../rating/entities/rating.entity";
 import { User } from "../user/entities/user.entity";
@@ -26,6 +26,23 @@ export class ShowsService {
     private readonly chatGateway: ChatGateway
   ) {}
 
+  private async getUsernameById(userId: number): Promise<string> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['username']
+    });
+    return user?.username || 'Unknown User';
+  }
+
+  private async getUsernamesByIds(userIds: number[]): Promise<string[]> {
+    if (!userIds || userIds.length === 0) return [];
+    const users = await this.userRepository.find({
+      where: { id: In(userIds) },
+      select: ['username']
+    });
+    return users.map(user => user.username);
+  }
+
   async createShow(createShowDto: CreateShowDto): Promise<ShowInterface> {
     const show = this.showRepository.create({
       name: createShowDto.name,
@@ -37,11 +54,12 @@ export class ShowsService {
     const savedShow = await this.showRepository.save(show);
 
     // Convert to interface format
+    const participantNames = await this.getUsernamesByIds(savedShow.participants || []);
     const showInterface: ShowInterface = {
       id: savedShow.id.toString(),
       name: savedShow.name,
       venue: savedShow.venue as "karafun" | "excess" | "dj steve",
-      participants: savedShow.participants || [],
+      participants: participantNames,
       ratings: [],
       createdAt: savedShow.createdAt,
       queue: savedShow.queue || [],
@@ -56,27 +74,49 @@ export class ShowsService {
 
   async getAllShows(): Promise<ShowInterface[]> {
     const shows = await this.showRepository.find({
-      relations: ["ratings"],
+      relations: ["ratings", "ratings.performer"],
       order: { createdAt: "DESC" },
     });
 
-    return shows.map((show) => ({
-      id: show.id.toString(),
-      name: show.name,
-      venue: show.venue as "karafun" | "excess" | "dj steve",
-      participants: show.participants || [],
-      ratings: [],
-      createdAt: show.createdAt,
-      queue: show.queue || [],
-      currentSinger: show.currentSinger,
-      currentSong: show.currentSong,
-    }));
+    // Process each show with async operations
+    const processedShows = await Promise.all(
+      shows.map(async (show) => ({
+        id: show.id.toString(),
+        name: show.name,
+        venue: show.venue as "karafun" | "excess" | "dj steve",
+        participants: await this.getUsernamesByIds(show.participants || []),
+        ratings:
+          show.ratings?.map((rating) => ({
+            id: rating.id.toString(),
+            rating: Number(rating.score),
+            comment: rating.comment || "",
+            ratedBy: rating.performer?.username || "",
+            singer: rating.performer?.username || "",
+            song: rating.songTitle || "",
+            createdAt: rating.createdAt,
+            showId: rating.showId?.toString() || "",
+          })) || [],
+        createdAt: show.createdAt,
+        queue: show.queue || [],
+        currentSinger: show.currentSingerId
+          ? await this.getUsernameById(show.currentSingerId)
+          : undefined,
+        currentSong: show.currentSong,
+      }))
+    );
+
+    return processedShows;
   }
 
   async getShow(id: string): Promise<ShowInterface | undefined> {
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) {
+      return undefined; // Return undefined for invalid IDs
+    }
+
     const show = await this.showRepository.findOne({
-      where: { id: parseInt(id) },
-      relations: ["ratings"],
+      where: { id: numericId },
+      relations: ["ratings", "ratings.performer"],
     });
 
     if (!show) return undefined;
@@ -85,11 +125,23 @@ export class ShowsService {
       id: show.id.toString(),
       name: show.name,
       venue: show.venue as "karafun" | "excess" | "dj steve",
-      participants: show.participants || [],
-      ratings: [],
+      participants: await this.getUsernamesByIds(show.participants || []),
+      ratings:
+        show.ratings?.map((rating) => ({
+          id: rating.id.toString(),
+          rating: Number(rating.score),
+          comment: rating.comment || "",
+          ratedBy: rating.performer?.username || "",
+          singer: rating.performer?.username || "",
+          song: rating.songTitle || "",
+          createdAt: rating.createdAt,
+          showId: rating.showId?.toString() || "",
+        })) || [],
       createdAt: show.createdAt,
       queue: show.queue || [],
-      currentSinger: show.currentSinger,
+      currentSinger: show.currentSingerId
+        ? await this.getUsernameById(show.currentSingerId)
+        : undefined,
       currentSong: show.currentSong,
     };
   }
@@ -102,8 +154,8 @@ export class ShowsService {
     if (!show) return undefined;
 
     const participants = show.participants || [];
-    if (!participants.includes(joinShowDto.username)) {
-      participants.push(joinShowDto.username);
+    if (!participants.includes(joinShowDto.userId)) {
+      participants.push(joinShowDto.userId);
       show.participants = participants;
       await this.showRepository.save(show);
 
@@ -117,7 +169,7 @@ export class ShowsService {
 
   async updateCurrentPerformer(
     showId: string,
-    singer: string,
+    singerId: number,
     song: string
   ): Promise<ShowInterface | undefined> {
     const show = await this.showRepository.findOne({
@@ -126,7 +178,7 @@ export class ShowsService {
 
     if (!show) return undefined;
 
-    show.currentSinger = singer;
+    show.currentSingerId = singerId;
     show.currentSong = song;
     await this.showRepository.save(show);
 
@@ -134,8 +186,9 @@ export class ShowsService {
     this.chatGateway.server.emit("showsUpdated", allShows);
 
     // Inform room subscribers of performer change
+    const singerName = await this.getUsernameById(singerId);
     this.chatGateway.server.to(showId).emit("currentPerformerChanged", {
-      singer,
+      singer: singerName,
       song,
     });
 
@@ -177,7 +230,11 @@ export class ShowsService {
     const next = queue.shift();
 
     if (next) {
-      show.currentSinger = next.singer;
+      // Find the user ID for the next singer
+      const user = await this.userRepository.findOne({
+        where: { username: next.singer },
+      });
+      show.currentSingerId = user?.id;
       show.currentSong = next.song;
     }
 
@@ -218,12 +275,21 @@ export class ShowsService {
       user = await this.userRepository.save(user);
     }
 
+    // Find the performer by username
+    const performer = await this.userRepository.findOne({
+      where: { username: rateDto.singer },
+    });
+
+    if (!performer) {
+      throw new Error(`Performer ${rateDto.singer} not found`);
+    }
+
     const rating = this.ratingRepository.create({
       score: rateDto.rating,
       comment: rateDto.comment || "",
-      performerName: rateDto.singer,
       songTitle: rateDto.song,
       userId: user.id,
+      performerId: performer.id,
       showId: parseInt(rateDto.showId),
     });
 
@@ -258,7 +324,7 @@ export class ShowsService {
       rating: rating.score,
       comment: rating.comment,
       ratedBy: rating.user.username,
-      singer: rating.performerName,
+      singer: rating.performer.username,
       song: rating.songTitle,
       createdAt: rating.createdAt,
       showId: showId,

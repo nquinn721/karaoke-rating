@@ -17,7 +17,7 @@ async function bootstrap() {
 
   // Serve static files from the React build
   app.useStaticAssets(join(__dirname, "..", "client", "dist"));
-  
+
   // Set the views directory for serving index.html
   app.setBaseViewsDir(join(__dirname, "..", "client", "dist"));
 

@@ -1,13 +1,13 @@
 import {
   Alert,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   TextField,
   Typography,
-  CircularProgress,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
@@ -35,7 +35,11 @@ const UsernameModal: React.FC = observer(() => {
         <Typography variant="body1" sx={{ mb: 2 }}>
           Please enter your username to continue:
         </Typography>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
         <TextField
           autoFocus
           fullWidth
@@ -56,7 +60,9 @@ const UsernameModal: React.FC = observer(() => {
           onClick={handleSubmit}
           variant="contained"
           disabled={!username.trim() || authStore.isLoading}
-          startIcon={authStore.isLoading ? <CircularProgress size={20} /> : null}
+          startIcon={
+            authStore.isLoading ? <CircularProgress size={20} /> : null
+          }
         >
           {authStore.isLoading ? "Signing in..." : "Continue"}
         </Button>

@@ -1,6 +1,6 @@
 import { Module, forwardRef } from "@nestjs/common";
-import { ChatGateway } from "./chat.gateway";
 import { FeedbackModule } from "../feedback/feedback.module";
+import { ChatGateway } from "./chat.gateway";
 
 @Module({
   imports: [forwardRef(() => FeedbackModule)],

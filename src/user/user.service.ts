@@ -1,8 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { User } from "./entities/user.entity";
 import { AuthService } from "../auth/auth.service";
+import { Rating } from "../rating/entities/rating.entity";
+import { Show } from "../shows/entities/show.entity";
+import { User } from "./entities/user.entity";
 
 export interface LoginResponse {
   success: boolean;
@@ -21,7 +23,11 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private authService: AuthService,
+    @InjectRepository(Rating)
+    private ratingRepository: Repository<Rating>,
+    @InjectRepository(Show)
+    private showRepository: Repository<Show>,
+    private authService: AuthService
   ) {}
 
   async loginOrRegister(username: string): Promise<LoginResponse> {
@@ -31,7 +37,7 @@ export class UserService {
     });
 
     let isNewUser = false;
-    
+
     if (!user) {
       // Create new user
       user = this.userRepository.create({ username });
@@ -39,8 +45,11 @@ export class UserService {
     }
 
     // Generate new auth token
-    const authToken = this.authService.generateAuthToken(user.id || 0, username);
-    
+    const authToken = this.authService.generateAuthToken(
+      user.id || 0,
+      username
+    );
+
     // Update user with new token
     user.authToken = authToken;
     user = await this.userRepository.save(user);
@@ -77,7 +86,10 @@ export class UserService {
     });
   }
 
-  async changeUsername(oldUsername: string, newUsername: string): Promise<{ success: boolean; message: string; user?: any }> {
+  async changeUsername(
+    oldUsername: string,
+    newUsername: string
+  ): Promise<{ success: boolean; message: string; user?: any }> {
     // Check if old user exists
     let oldUser = await this.userRepository.findOne({
       where: { username: oldUsername },
@@ -92,9 +104,12 @@ export class UserService {
         isAdmin: false,
       });
       oldUser = await this.userRepository.save(oldUser);
-      
+
       // Update the auth token with the actual user ID
-      oldUser.authToken = this.authService.generateAuthToken(oldUser.id, oldUsername);
+      oldUser.authToken = this.authService.generateAuthToken(
+        oldUser.id,
+        oldUsername
+      );
       oldUser = await this.userRepository.save(oldUser);
     }
 
@@ -124,11 +139,14 @@ export class UserService {
 
     // Update username
     oldUser.username = newUsername;
-    
+
     // Generate new auth token for security
-    const authToken = this.authService.generateAuthToken(oldUser.id, newUsername);
+    const authToken = this.authService.generateAuthToken(
+      oldUser.id,
+      newUsername
+    );
     oldUser.authToken = authToken;
-    
+
     const updatedUser = await this.userRepository.save(oldUser);
 
     return {
@@ -163,5 +181,91 @@ export class UserService {
       relations: ["ratings"],
       order: { createdAt: "DESC" },
     });
+  }
+
+  async getUserHistory(userId: number) {
+    // Get all shows where user was a participant (stored as JSON array of user IDs in participants column)
+    const showsAttended = await this.showRepository
+      .createQueryBuilder("show")
+      .where("JSON_CONTAINS(show.participants, :userId)", {
+        userId: JSON.stringify(userId),
+      })
+      .orderBy("show.createdAt", "DESC")
+      .getMany();
+
+    // Get all ratings given by the user
+    const ratingsGiven = await this.ratingRepository.find({
+      where: { userId },
+      relations: ["performer", "show"],
+      order: { createdAt: "DESC" },
+    });
+
+    // Get all ratings received by the user
+    const ratingsReceived = await this.ratingRepository.find({
+      where: { performerId: userId },
+      relations: ["user", "show"],
+      order: { createdAt: "DESC" },
+    });
+
+    return {
+      showsAttended: showsAttended.map((show) => ({
+        id: show.id,
+        name: show.name,
+        venue: show.venue,
+        createdAt: show.createdAt,
+        participants: show.participants,
+        currentSingerId: show.currentSingerId,
+        currentSong: show.currentSong,
+      })),
+      ratingsGiven: ratingsGiven.map((rating) => ({
+        id: rating.id,
+        score: rating.score,
+        comment: rating.comment,
+        songTitle: rating.songTitle,
+        createdAt: rating.createdAt,
+        performer: {
+          id: rating.performer.id,
+          username: rating.performer.username,
+        },
+        show: {
+          id: rating.show.id,
+          name: rating.show.name,
+          venue: rating.show.venue,
+          createdAt: rating.show.createdAt,
+        },
+      })),
+      ratingsReceived: ratingsReceived.map((rating) => ({
+        id: rating.id,
+        score: rating.score,
+        comment: rating.comment,
+        songTitle: rating.songTitle,
+        createdAt: rating.createdAt,
+        rater: {
+          id: rating.user.id,
+          username: rating.user.username,
+        },
+        show: {
+          id: rating.show.id,
+          name: rating.show.name,
+          venue: rating.show.venue,
+          createdAt: rating.show.createdAt,
+        },
+      })),
+      stats: {
+        totalShowsAttended: showsAttended.length,
+        totalRatingsGiven: ratingsGiven.length,
+        totalRatingsReceived: ratingsReceived.length,
+        averageRatingGiven:
+          ratingsGiven.length > 0
+            ? ratingsGiven.reduce((sum, r) => sum + Number(r.score), 0) /
+              ratingsGiven.length
+            : 0,
+        averageRatingReceived:
+          ratingsReceived.length > 0
+            ? ratingsReceived.reduce((sum, r) => sum + Number(r.score), 0) /
+              ratingsReceived.length
+            : 0,
+      },
+    };
   }
 }

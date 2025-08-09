@@ -20,13 +20,13 @@ export class Show {
   venue: string;
 
   @Column({ type: "json", nullable: true })
-  participants: string[]; // Array of usernames
+  participants: number[]; // Array of user IDs
 
   @Column({ type: "json", nullable: true })
   queue: any[]; // Queue items for karaoke
 
-  @Column({ length: 100, nullable: true })
-  currentSinger: string; // Current performer
+  @Column({ type: "int", nullable: true })
+  currentSingerId: number; // Current performer ID
 
   @Column({ length: 200, nullable: true })
   currentSong: string; // Current song being performed

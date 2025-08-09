@@ -1,9 +1,9 @@
+import { AuthStore } from "./AuthStore";
 import { BaseAPIStore } from "./BaseAPIStore";
 import { ChatStore } from "./ChatStore";
 import { FeedbackStore } from "./FeedbackStore";
 import { ShowsStore } from "./ShowsStore";
 import { UserStore } from "./UserStore";
-import { AuthStore } from "./AuthStore";
 
 export class RootStore {
   baseAPI = new BaseAPIStore();
