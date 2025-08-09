@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -6,18 +7,24 @@ import {
   DialogTitle,
   TextField,
   Typography,
+  CircularProgress,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
 import { rootStore } from "../stores/RootStore";
 
 const UsernameModal: React.FC = observer(() => {
-  const { userStore } = rootStore;
+  const { authStore } = rootStore;
   const [username, setUsername] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (username.trim()) {
-      userStore.setUsername(username.trim());
+      setError("");
+      const result = await authStore.login(username.trim());
+      if (!result.success) {
+        setError(result.message || "Login failed");
+      }
     }
   };
 
@@ -28,6 +35,7 @@ const UsernameModal: React.FC = observer(() => {
         <Typography variant="body1" sx={{ mb: 2 }}>
           Please enter your username to continue:
         </Typography>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <TextField
           autoFocus
           fullWidth
@@ -39,6 +47,7 @@ const UsernameModal: React.FC = observer(() => {
               handleSubmit();
             }
           }}
+          disabled={authStore.isLoading}
           sx={{ mt: 1 }}
         />
       </DialogContent>
@@ -46,9 +55,10 @@ const UsernameModal: React.FC = observer(() => {
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={!username.trim()}
+          disabled={!username.trim() || authStore.isLoading}
+          startIcon={authStore.isLoading ? <CircularProgress size={20} /> : null}
         >
-          Continue
+          {authStore.isLoading ? "Signing in..." : "Continue"}
         </Button>
       </DialogActions>
     </Dialog>

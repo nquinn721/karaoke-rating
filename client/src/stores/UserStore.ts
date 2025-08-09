@@ -32,7 +32,9 @@ export class UserStore {
   // Legacy method for compatibility - now uses AuthStore
   setUsername(_username: string) {
     // This method is now handled by AuthStore.login()
-    console.warn("UserStore.setUsername is deprecated. Use AuthStore.login() instead.");
+    console.warn(
+      "UserStore.setUsername is deprecated. Use AuthStore.login() instead."
+    );
   }
 
   // Legacy method for compatibility - now uses AuthStore

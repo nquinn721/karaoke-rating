@@ -34,7 +34,7 @@ const App: React.FC = observer(() => {
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
 
-        {!userStore.hasUsername && <UsernameModal />}
+        {!userStore.isAuthenticated && <UsernameModal />}
       </Container>
     </Box>
   );

@@ -35,7 +35,7 @@ export class ShowsService {
     });
 
     const savedShow = await this.showRepository.save(show);
-    
+
     // Convert to interface format
     const showInterface: ShowInterface = {
       id: savedShow.id.toString(),
@@ -60,7 +60,7 @@ export class ShowsService {
       order: { createdAt: "DESC" },
     });
 
-    return shows.map(show => ({
+    return shows.map((show) => ({
       id: show.id.toString(),
       name: show.name,
       venue: show.venue as "karafun" | "excess" | "dj steve",
@@ -106,7 +106,7 @@ export class ShowsService {
       participants.push(joinShowDto.username);
       show.participants = participants;
       await this.showRepository.save(show);
-      
+
       // Broadcast shows update
       const allShows = await this.getAllShows();
       this.chatGateway.server.emit("showsUpdated", allShows);
@@ -132,7 +132,7 @@ export class ShowsService {
 
     const allShows = await this.getAllShows();
     this.chatGateway.server.emit("showsUpdated", allShows);
-    
+
     // Inform room subscribers of performer change
     this.chatGateway.server.to(showId).emit("currentPerformerChanged", {
       singer,
@@ -142,7 +142,10 @@ export class ShowsService {
     return this.getShow(showId);
   }
 
-  async addToQueue(showId: string, item: QueueItem): Promise<ShowInterface | undefined> {
+  async addToQueue(
+    showId: string,
+    item: QueueItem
+  ): Promise<ShowInterface | undefined> {
     const show = await this.showRepository.findOne({
       where: { id: parseInt(showId) },
     });
@@ -250,7 +253,7 @@ export class ShowsService {
       order: { createdAt: "DESC" },
     });
 
-    return ratings.map(rating => ({
+    return ratings.map((rating) => ({
       id: rating.id.toString(),
       rating: rating.score,
       comment: rating.comment,
@@ -262,7 +265,10 @@ export class ShowsService {
     }));
   }
 
-  async removeQueueItem(showId: string, index: number): Promise<ShowInterface | undefined> {
+  async removeQueueItem(
+    showId: string,
+    index: number
+  ): Promise<ShowInterface | undefined> {
     const show = await this.showRepository.findOne({
       where: { id: parseInt(showId) },
     });
@@ -285,7 +291,10 @@ export class ShowsService {
     return this.getShow(showId);
   }
 
-  async removeQueueBySinger(showId: string, singer: string): Promise<ShowInterface | undefined> {
+  async removeQueueBySinger(
+    showId: string,
+    singer: string
+  ): Promise<ShowInterface | undefined> {
     const show = await this.showRepository.findOne({
       where: { id: parseInt(showId) },
     });
@@ -295,7 +304,7 @@ export class ShowsService {
     const queue = show.queue || [];
     const initialLength = queue.length;
     show.queue = queue.filter((item: any) => item.singer !== singer);
-    
+
     // Only save and broadcast if something was removed
     if (show.queue.length !== initialLength) {
       await this.showRepository.save(show);
