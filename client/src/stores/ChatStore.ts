@@ -32,7 +32,10 @@ export class ChatStore {
 
     // Use the same base URL logic as the API
     const socketURL = this.baseAPI.currentBaseURL;
-    this.socket = io(socketURL);
+    const token = localStorage.getItem("auth_token");
+    this.socket = io(socketURL, {
+      auth: token ? { token } : undefined,
+    });
 
     this.socket.on("connect", () => {
       runInAction(() => {
@@ -131,7 +134,11 @@ export class ChatStore {
   joinShow(showId: string, username: string) {
     if (!this.socket) return;
 
-    this.socket.emit("joinShow", { showId, username });
+    const userJson = localStorage.getItem("user_data");
+    const user = userJson ? JSON.parse(userJson) : null;
+    const userId = user?.id;
+
+    this.socket.emit("joinShow", userId ? { showId, userId } : { showId, username });
   }
 
   updateUsername(username: string) {

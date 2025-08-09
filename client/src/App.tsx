@@ -1,4 +1,4 @@
-import { Box, Container } from "@mui/material";
+import { Box, CircularProgress, Container } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React from "react";
 import { Route, Routes } from "react-router-dom";
@@ -9,7 +9,7 @@ import UsernameModal from "./components/UsernameModal";
 import { rootStore } from "./stores/RootStore";
 
 const App: React.FC = observer(() => {
-  const { userStore, showsStore, chatStore } = rootStore;
+  const { userStore, showsStore, chatStore, authStore } = rootStore;
 
   // Ensure shows load on first visit and websockets are ready
   React.useEffect(() => {
@@ -18,6 +18,23 @@ const App: React.FC = observer(() => {
     }
     chatStore.initializeSocket();
   }, []);
+
+  // Show loading spinner while checking for saved authentication
+  if (authStore.isInitializing) {
+    return (
+      <Box 
+        sx={{ 
+          minHeight: "100vh", 
+          bgcolor: "background.default",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
@@ -34,7 +51,7 @@ const App: React.FC = observer(() => {
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
 
-        {!userStore.isAuthenticated && <UsernameModal />}
+        {!userStore.isAuthenticated && !authStore.isInitializing && <UsernameModal />}
       </Container>
     </Box>
   );

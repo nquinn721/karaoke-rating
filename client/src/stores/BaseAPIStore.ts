@@ -43,6 +43,13 @@ export class BaseAPIStore {
           this.setLoading(true);
           this.clearError();
         });
+        // Attach auth token from localStorage if present
+        const token = localStorage.getItem("auth_token");
+        if (token) {
+          // Ensure headers exists
+          config.headers = config.headers || {};
+          (config.headers as any)["Authorization"] = `Bearer ${token}`;
+        }
         return config;
       },
       (error) => {

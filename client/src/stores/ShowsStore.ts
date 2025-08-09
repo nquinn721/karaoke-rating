@@ -104,10 +104,16 @@ export class ShowsStore {
 
   async joinShow(showId: string, username: string) {
     try {
-      const updatedShow = await this.baseAPI.post<Show>("/api/shows/join", {
-        showId,
-        username,
-      });
+      // Fetch user from localStorage (set by AuthStore)
+      const userJson = localStorage.getItem("user_data");
+      const user = userJson ? JSON.parse(userJson) : null;
+      const userId = user?.id;
+
+      const payload = userId
+        ? { showId, userId }
+        : { showId, username };
+
+      const updatedShow = await this.baseAPI.post<Show>("/api/shows/join", payload);
 
       const normalized = this.normalizeShow(updatedShow as any);
       runInAction(() => {

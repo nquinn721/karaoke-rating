@@ -19,13 +19,22 @@ export class AuthStore {
   authToken: string | null = null;
   isAuthenticated = false;
   isLoading = false;
+  isInitializing = true; // Track initial load state
 
   constructor() {
     makeAutoObservable(this);
     this.loadFromStorage();
   }
 
-  private loadFromStorage() {
+  // Allow components to await initialization if needed
+  async hydrate() {
+    if (!this.isInitializing) return;
+    // Wait a tick to allow loadFromStorage to finish if it's running
+    await new Promise((r) => setTimeout(r, 0));
+  }
+
+  private async loadFromStorage() {
+    this.isInitializing = true;
     const token = localStorage.getItem("auth_token");
     const userData = localStorage.getItem("user_data");
 
@@ -34,12 +43,14 @@ export class AuthStore {
         this.authToken = token;
         this.user = JSON.parse(userData);
         this.isAuthenticated = true;
-        // Verify token is still valid
-        this.verifyToken();
+        // Verify token is still valid in the background
+        await this.verifyToken();
       } catch (error) {
+        console.warn("Failed to load saved auth data:", error);
         this.clearAuth();
       }
     }
+    this.isInitializing = false;
   }
 
   private saveToStorage() {
@@ -53,6 +64,7 @@ export class AuthStore {
     this.user = null;
     this.authToken = null;
     this.isAuthenticated = false;
+    this.isInitializing = false;
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_data");
   }
@@ -101,7 +113,10 @@ export class AuthStore {
   }
 
   async verifyToken(): Promise<boolean> {
-    if (!this.authToken) return false;
+    if (!this.authToken) {
+      this.isInitializing = false;
+      return false;
+    }
 
     try {
       const response = await fetch("/api/users/verify", {
@@ -112,13 +127,20 @@ export class AuthStore {
         },
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       const data = await response.json();
 
-      if (data.success) {
+      if (data.success && data.user) {
         this.user = data.user;
         this.isAuthenticated = true;
+        this.saveToStorage(); // Re-save to update any user data changes
+        console.log("Auto-login successful for user:", data.user.username);
         return true;
       } else {
+        console.warn("Token verification failed:", data);
         this.clearAuth();
         return false;
       }
@@ -126,6 +148,8 @@ export class AuthStore {
       console.error("Token verification error:", error);
       this.clearAuth();
       return false;
+    } finally {
+      this.isInitializing = false;
     }
   }
 
