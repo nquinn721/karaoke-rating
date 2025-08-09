@@ -30,9 +30,10 @@ import { useNavigate } from "react-router-dom";
 import { rootStore } from "../stores/RootStore";
 import QRScanner from "./QRScanner";
 import UserMenu from "./UserMenu";
+import { ChangeUsernameModal } from "./ChangeUsernameModal";
 
 const HomePage: React.FC = observer(() => {
-  const { showsStore, userStore } = rootStore;
+  const { showsStore, userStore, authStore } = rootStore;
   const navigate = useNavigate();
   const showNameInputRef = useRef<HTMLInputElement>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -41,8 +42,7 @@ const HomePage: React.FC = observer(() => {
   const [newShowVenue, setNewShowVenue] = useState<
     "karafun" | "excess" | "dj steve"
   >("karafun");
-  const [usernameModalOpen, setUsernameModalOpen] = useState(false);
-  const [usernameInput, setUsernameInput] = useState("");
+  const [changeUsernameModalOpen, setChangeUsernameModalOpen] = useState(false);
 
   // Debug logging
   React.useEffect(() => {
@@ -177,8 +177,7 @@ const HomePage: React.FC = observer(() => {
         <UserMenu
           getUserColor={getUserColor}
           onUsernameChange={() => {
-            setUsernameInput(userStore.username);
-            setUsernameModalOpen(true);
+            setChangeUsernameModalOpen(true);
           }}
         />
       </Box>
@@ -424,40 +423,13 @@ const HomePage: React.FC = observer(() => {
         </DialogActions>
       </Dialog>
 
-      {/* Username change dialog */}
-      <Dialog
-        open={usernameModalOpen}
-        onClose={() => setUsernameModalOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Change Username</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            label="Username"
-            value={usernameInput}
-            onChange={(e) => setUsernameInput(e.target.value)}
-            sx={{ mt: 1 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUsernameModalOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            disabled={!usernameInput.trim()}
-            onClick={() => {
-              const name = usernameInput.trim();
-              userStore.setUsername(name);
-              rootStore.chatStore.updateUsername(name);
-              setUsernameModalOpen(false);
-            }}
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Username change modal */}
+      <ChangeUsernameModal 
+        open={changeUsernameModalOpen}
+        onClose={() => setChangeUsernameModalOpen(false)}
+        currentUsername={userStore.username}
+        authStore={rootStore.authStore}
+      />
     </Box>
   );
 });

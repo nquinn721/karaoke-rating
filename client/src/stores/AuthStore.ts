@@ -4,6 +4,7 @@ export interface User {
   id: number;
   username: string;
   createdAt: string;
+  isAdmin: boolean;
 }
 
 export interface LoginResponse {
@@ -126,5 +127,51 @@ export class AuthStore {
 
   logout() {
     this.clearAuth();
+  }
+
+  async changeUsername(oldUsername: string, newUsername: string): Promise<{ success: boolean; message: string }> {
+    if (!newUsername.trim()) {
+      return { success: false, message: 'New username is required' };
+    }
+
+    if (oldUsername.trim() === newUsername.trim()) {
+      return { success: false, message: 'New username must be different from current username' };
+    }
+
+    this.isLoading = true;
+    
+    try {
+      const response = await fetch('/api/users/change-username', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.authToken}`,
+        },
+        body: JSON.stringify({ 
+          oldUsername: oldUsername.trim(),
+          newUsername: newUsername.trim() 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        this.user = data.user;
+        this.authToken = data.user.authToken;
+        this.saveToStorage();
+        
+        return { 
+          success: true, 
+          message: 'Username changed successfully!' 
+        };
+      } else {
+        return { success: false, message: data.message || 'Username change failed' };
+      }
+    } catch (error) {
+      console.error('Username change error:', error);
+      return { success: false, message: 'Network error' };
+    } finally {
+      this.isLoading = false;
+    }
   }
 }

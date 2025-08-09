@@ -10,6 +10,7 @@ export interface LoginResponse {
     id: number;
     username: string;
     createdAt: Date;
+    isAdmin: boolean;
   };
   authToken: string;
   isNewUser: boolean;
@@ -50,6 +51,7 @@ export class UserService {
         id: user.id,
         username: user.username,
         createdAt: user.createdAt,
+        isAdmin: user.isAdmin,
       },
       authToken,
       isNewUser,
@@ -73,6 +75,48 @@ export class UserService {
       where: { username },
       relations: ["ratings"],
     });
+  }
+
+  async changeUsername(oldUsername: string, newUsername: string): Promise<{ success: boolean; message: string; user?: any }> {
+    // Check if old user exists
+    const oldUser = await this.userRepository.findOne({
+      where: { username: oldUsername },
+      relations: ["ratings"],
+    });
+
+    if (!oldUser) {
+      return { success: false, message: "Current username not found" };
+    }
+
+    // Check if new username already exists
+    const existingUser = await this.userRepository.findOne({
+      where: { username: newUsername },
+    });
+
+    if (existingUser) {
+      return { success: false, message: "Username already taken" };
+    }
+
+    // Update username
+    oldUser.username = newUsername;
+    
+    // Generate new auth token for security
+    const authToken = this.authService.generateAuthToken(oldUser.id, newUsername);
+    oldUser.authToken = authToken;
+    
+    const updatedUser = await this.userRepository.save(oldUser);
+
+    return {
+      success: true,
+      message: "Username changed successfully",
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        createdAt: updatedUser.createdAt,
+        isAdmin: updatedUser.isAdmin,
+        authToken,
+      },
+    };
   }
 
   async findOrCreateUser(username: string): Promise<User> {

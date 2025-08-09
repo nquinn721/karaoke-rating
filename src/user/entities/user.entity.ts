@@ -19,6 +19,9 @@ export class User {
   @Column({ type: 'text', nullable: true })
   authToken: string; // Non-expiring OAuth token
 
+  @Column({ type: 'boolean', default: false })
+  isAdmin: boolean; // Admin privileges
+
   @CreateDateColumn()
   createdAt: Date;
 

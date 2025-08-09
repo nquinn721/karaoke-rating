@@ -1,8 +1,10 @@
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
+import { join } from "path";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Enable CORS
   app.enableCors({
@@ -12,6 +14,12 @@ async function bootstrap() {
         : "*",
     credentials: true,
   });
+
+  // Serve static files from the React build
+  app.useStaticAssets(join(__dirname, "..", "client", "dist"));
+  
+  // Set the views directory for serving index.html
+  app.setBaseViewsDir(join(__dirname, "..", "client", "dist"));
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

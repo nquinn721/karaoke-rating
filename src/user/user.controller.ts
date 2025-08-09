@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Headers } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Headers, Put } from "@nestjs/common";
 import { UserService } from "./user.service";
 
 @Controller("api/users")
@@ -34,6 +34,7 @@ export class UserController {
         id: user.id,
         username: user.username,
         createdAt: user.createdAt,
+        isAdmin: user.isAdmin,
       }
     };
   }
@@ -45,6 +46,20 @@ export class UserController {
       return { success: false, message: "User not found" };
     }
     return { success: true, user };
+  }
+
+  @Put('change-username')
+  async changeUsername(@Body() body: { oldUsername: string, newUsername: string }) {
+    if (!body.oldUsername || !body.newUsername) {
+      return { success: false, message: "Both oldUsername and newUsername are required" };
+    }
+
+    if (body.oldUsername.trim() === body.newUsername.trim()) {
+      return { success: false, message: "New username must be different from current username" };
+    }
+
+    const result = await this.userService.changeUsername(body.oldUsername.trim(), body.newUsername.trim());
+    return result;
   }
 
   @Get()
