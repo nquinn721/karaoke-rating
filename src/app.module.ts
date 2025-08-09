@@ -5,6 +5,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { ChatModule } from "./chat/chat.module";
 import { ShowsModule } from "./shows/shows.module";
+import { FeedbackModule } from "./feedback/feedback.module";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ShowsModule } from "./shows/shows.module";
       : []),
     ShowsModule,
     ChatModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [AppService],

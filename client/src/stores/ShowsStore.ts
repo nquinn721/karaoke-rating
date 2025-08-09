@@ -47,7 +47,9 @@ export class ShowsStore {
       participants: Array.isArray(show.participants) ? show.participants : [],
       ratings: Array.isArray(show.ratings) ? show.ratings : [],
       createdAt: show.createdAt ? new Date(show.createdAt) : new Date(),
-    };
+      // ensure queue is always present
+      queue: Array.isArray(show.queue) ? show.queue : [],
+    } as Show;
   };
 
   async fetchShows() {

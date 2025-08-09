@@ -28,9 +28,11 @@
     "@nestjs/platform-socket.io": "^10.0.0",
     "@nestjs/serve-static": "^4.0.0",
     "@nestjs/websockets": "^10.0.0",
+    "mysql2": "^3.14.3",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "socket.io": "^4.7.2"
+    "socket.io": "^4.7.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
@@ -40,6 +42,7 @@
     "@types/jest": "^29.5.2",
     "@types/node": "^20.3.1",
     "@types/supertest": "^6.0.0",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "concurrently": "^8.2.2",

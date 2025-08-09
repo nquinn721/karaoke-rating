@@ -23,6 +23,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { rootStore } from "../stores/RootStore";
 import CurrentPerformance from "./CurrentPerformance";
 import RatingsTab from "./RatingsTab";
+import UserMenu from "./UserMenu";
 
 const ShowPage: React.FC = observer(() => {
   const { id } = useParams<{ id: string }>();
@@ -166,35 +167,7 @@ const ShowPage: React.FC = observer(() => {
         </Box>
 
         {/* User info - always horizontal */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Avatar
-            sx={{
-              width: { xs: 24, sm: 28 },
-              height: { xs: 24, sm: 28 },
-              bgcolor: getUserColor(userStore.username),
-              fontSize: { xs: "0.7rem", sm: "0.75rem" },
-              mr: 1,
-            }}
-          >
-            {userStore.username.charAt(0).toUpperCase()}
-          </Avatar>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              whiteSpace: "nowrap",
-            }}
-          >
-            {userStore.username}
-          </Typography>
-        </Box>
+        <UserMenu getUserColor={getUserColor} />
       </Box>
 
       <Tabs

@@ -29,6 +29,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { rootStore } from "../stores/RootStore";
 import QRScanner from "./QRScanner";
+import UserMenu from "./UserMenu";
 
 const HomePage: React.FC = observer(() => {
   const { showsStore, userStore } = rootStore;
@@ -99,6 +100,32 @@ const HomePage: React.FC = observer(() => {
     setAddModalOpen(false);
   };
 
+  // Generate consistent colors for usernames
+  const getUserColor = (username: string) => {
+    const colors = [
+      "#ff6b6b", // Coral red
+      "#4ecdc4", // Turquoise
+      "#45b7d1", // Sky blue
+      "#f9ca24", // Yellow
+      "#6c5ce7", // Purple
+      "#a29bfe", // Light purple
+      "#fd79a8", // Pink
+      "#00b894", // Green
+      "#e17055", // Orange
+      "#74b9ff", // Light blue
+      "#55a3ff", // Blue
+      "#26de81", // Light green
+      "#fc5c65", // Red
+      "#fed330", // Amber
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+      hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   return (
     <Box>
       {/* Clean mobile-friendly header */}
@@ -113,21 +140,13 @@ const HomePage: React.FC = observer(() => {
         <Typography variant="h3" component="h1" color="primary">
           Karaoke Shows
         </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography variant="h6" color="text.secondary">
-            Welcome, {userStore.username || "Guest"}!
-          </Typography>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => {
-              setUsernameInput(userStore.username);
-              setUsernameModalOpen(true);
-            }}
-          >
-            Change
-          </Button>
-        </Box>
+        <UserMenu 
+          getUserColor={getUserColor}
+          onUsernameChange={() => {
+            setUsernameInput(userStore.username);
+            setUsernameModalOpen(true);
+          }}
+        />
       </Box>
 
       {/* Etched Microphone Background - shows when no shows exist */}

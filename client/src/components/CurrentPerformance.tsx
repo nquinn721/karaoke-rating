@@ -1,4 +1,4 @@
-import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from "@mui/icons-material";
+import { Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon, SkipNext as SkipNextIcon, QueueMusic as QueueMusicIcon } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
@@ -13,6 +13,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
@@ -28,6 +32,8 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(({ showId
   const [isEditing, setIsEditing] = useState(false);
   const [editSinger, setEditSinger] = useState("");
   const [editSong, setEditSong] = useState("");
+  const [queueSinger, setQueueSinger] = useState("");
+  const [queueSong, setQueueSong] = useState("");
 
   // Use autocomplete hook for song search
   const { suggestions, loading } = useAutocomplete(editSong, 500);
@@ -59,7 +65,27 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(({ showId
     setEditSong("");
   };
 
+  const handleAddToQueue = async () => {
+    if (!queueSinger.trim() || !queueSong.trim()) return;
+    try {
+      await showsStore.addToQueue(showId, queueSinger.trim(), queueSong.trim());
+      setQueueSong("");
+    } catch (e) {
+      console.error("Failed to add to queue", e);
+    }
+  };
+
+  const handleNext = async () => {
+    try {
+      await showsStore.nextPerformance(showId);
+    } catch (e) {
+      console.error("Failed to advance queue", e);
+    }
+  };
+
   if (!show) return null;
+
+  const queue = (show as any).queue || [];
 
   return (
     <Card sx={{ 
@@ -71,15 +97,20 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(({ showId
           <Typography variant="h6">
             Current Performance
           </Typography>
-          {!isEditing && (
-            <IconButton 
-              onClick={handleStartEdit}
-              size="small"
-              sx={{ color: "primary.main" }}
-            >
-              <EditIcon />
-            </IconButton>
-          )}
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button size="small" variant="outlined" startIcon={<SkipNextIcon />} onClick={handleNext}>
+              Next
+            </Button>
+            {!isEditing && (
+              <IconButton 
+                onClick={handleStartEdit}
+                size="small"
+                sx={{ color: "primary.main" }}
+              >
+                <EditIcon />
+              </IconButton>
+            )}
+          </Box>
         </Box>
 
         {isEditing ? (
@@ -216,6 +247,75 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(({ showId
             )}
           </>
         )}
+
+        {/* Queue section */}
+        <Box sx={{ mt: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+            <QueueMusicIcon fontSize="small" />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Up Next</Typography>
+          </Box>
+
+          <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
+            {participants.length > 0 ? (
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel id="queue-singer-label">Singer</InputLabel>
+                <Select
+                  labelId="queue-singer-label"
+                  label="Singer"
+                  value={queueSinger}
+                  onChange={(e) => setQueueSinger(e.target.value as string)}
+                >
+                  {participants.map((p) => (
+                    <MenuItem key={p} value={p}>
+                      {p}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <TextField
+                size="small"
+                label="Singer"
+                value={queueSinger}
+                onChange={(e) => setQueueSinger(e.target.value)}
+                sx={{ minWidth: 180 }}
+              />
+            )}
+            <TextField
+              size="small"
+              label="Song"
+              value={queueSong}
+              onChange={(e) => setQueueSong(e.target.value)}
+              sx={{ flex: 1, minWidth: 220 }}
+            />
+            <Button variant="contained" onClick={handleAddToQueue} disabled={!queueSinger.trim() || !queueSong.trim()}>
+              Add
+            </Button>
+          </Box>
+
+          {queue.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">No one in queue</Typography>
+          ) : (
+            <List dense sx={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 1 }}>
+              {queue.map((item: any, idx: number) => (
+                <>
+                  <ListItem key={`${item.singer}-${item.song}-${idx}`}>
+                    <ListItemText
+                      primaryTypographyProps={{ component: "span" }}
+                      secondaryTypographyProps={{ component: "span" }}
+                      primary={<>
+                        <Typography component="span" variant="subtitle2" sx={{ fontWeight: 600 }}>{item.singer}</Typography>
+                        <Typography component="span" variant="body2" color="text.secondary"> • </Typography>
+                        <Typography component="span" variant="body2" color="text.secondary">{item.song}</Typography>
+                      </>}
+                    />
+                  </ListItem>
+                  {idx < queue.length - 1 && <Divider />}
+                </>
+              ))}
+            </List>
+          )}
+        </Box>
       </CardContent>
     </Card>
   );

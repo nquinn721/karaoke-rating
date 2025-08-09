@@ -3,12 +3,14 @@ import { BaseAPIStore } from "./BaseAPIStore";
 import { ChatStore } from "./ChatStore";
 import { ShowsStore } from "./ShowsStore";
 import { UserStore } from "./UserStore";
+import { FeedbackStore } from "./FeedbackStore";
 
 export class RootStore {
   baseAPI = new BaseAPIStore();
   userStore = new UserStore();
   showsStore = new ShowsStore(this.baseAPI);
   chatStore = new ChatStore(this.baseAPI);
+  feedbackStore = new FeedbackStore();
 
   constructor() {
     console.log("RootStore initialized", {
