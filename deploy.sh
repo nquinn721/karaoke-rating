@@ -8,7 +8,7 @@ set -e
 # Configuration
 PROJECT_ID="your-project-id-here"  # Replace with your actual project ID
 SERVICE_NAME="karaoke-rating"
-REGION="europe-west1"
+REGION="us-east1"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 
 # Colors for output

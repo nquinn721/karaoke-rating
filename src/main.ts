@@ -8,7 +8,7 @@ async function bootstrap() {
   app.enableCors({
     origin:
       process.env.NODE_ENV === "production"
-        ? ["https://karaoke-rating-203453576607.europe-west1.run.app"]
+        ? ["https://karaoke-rating-203453576607.us-east1.run.app"]
         : "*",
     credentials: true,
   });

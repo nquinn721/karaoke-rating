@@ -7,7 +7,7 @@ set -e
 
 # Configuration
 SERVICE_NAME="karaoke-rating"
-REGION="europe-west1"
+REGION="us-east1"
 
 # Colors
 GREEN='\033[0;32m'

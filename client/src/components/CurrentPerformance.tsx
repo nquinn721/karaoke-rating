@@ -258,15 +258,6 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                             gap: 1,
                           }}
                         >
-                          <Tooltip title="Remove from queue">
-                            <IconButton
-                              color="error"
-                              size="small"
-                              onClick={() => requestRemove(idx)}
-                            >
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
                           <Button
                             size="small"
                             variant="outlined"
@@ -276,6 +267,15 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                           >
                             Set Current
                           </Button>
+                          <Tooltip title="Remove from queue">
+                            <IconButton
+                              color="error"
+                              size="small"
+                              onClick={() => requestRemove(idx)}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
                       }
                     >

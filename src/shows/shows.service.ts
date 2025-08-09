@@ -142,4 +142,33 @@ export class ShowsService {
   getShowRatings(showId: string): Rating[] {
     return this.ratings.filter((rating) => rating.showId === showId);
   }
+
+  removeQueueItem(showId: string, index: number): Show | undefined {
+    const show = this.shows.find((s) => s.id === showId);
+    if (!show) return undefined;
+    if (!show.queue) show.queue = [];
+    if (index >= 0 && index < show.queue.length) {
+      show.queue.splice(index, 1);
+      this.chatGateway.server.to(showId).emit("queueUpdated", {
+        showId,
+        queue: show.queue,
+      });
+    }
+    return show;
+  }
+
+  removeQueueBySinger(showId: string, singer: string): Show | undefined {
+    const show = this.shows.find((s) => s.id === showId);
+    if (!show) return undefined;
+    if (!show.queue) show.queue = [];
+    const filtered = show.queue.filter((q) => q.singer !== singer);
+    if (filtered.length !== show.queue.length) {
+      show.queue = filtered;
+      this.chatGateway.server.to(showId).emit("queueUpdated", {
+        showId,
+        queue: show.queue,
+      });
+    }
+    return show;
+  }
 }

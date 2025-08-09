@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
 import {
   CreateShowDto,
   JoinShowDto,
@@ -62,5 +62,21 @@ export class ShowsController {
   @Post(":id/next")
   nextPerformance(@Param("id") id: string): Show | undefined {
     return this.showsService.advanceQueue(id);
+  }
+
+  @Delete(":id/queue/item")
+  removeQueueItem(
+    @Param("id") id: string,
+    @Body() body: { index: number }
+  ): Show | undefined {
+    return this.showsService.removeQueueItem(id, body.index);
+  }
+
+  @Delete(":id/queue/by-singer")
+  removeQueueBySinger(
+    @Param("id") id: string,
+    @Body() body: { singer: string }
+  ): Show | undefined {
+    return this.showsService.removeQueueBySinger(id, body.singer);
   }
 }

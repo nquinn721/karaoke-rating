@@ -26,7 +26,7 @@ If you haven't already created your Cloud SQL instance:
 gcloud sql instances create karaoke-db \
     --database-version=MYSQL_8_0 \
     --tier=db-f1-micro \
-    --region=europe-west1
+    --region=us-east1
 
 # Create database
 gcloud sql databases create karaoke --instance=karaoke-db
@@ -48,7 +48,7 @@ gcloud builds submit --tag gcr.io/$PROJECT_ID/karaoke-rating
 gcloud run deploy karaoke-rating \
     --image gcr.io/$PROJECT_ID/karaoke-rating \
     --platform managed \
-    --region europe-west1 \
+    --region us-east1 \
     --allow-unauthenticated \
     --set-env-vars="NODE_ENV=production" \
     --set-env-vars="DB_HOST=YOUR_CLOUD_SQL_IP" \
@@ -84,7 +84,7 @@ gcloud sql instances describe karaoke-db --format="value(ipAddresses[0].ipAddres
 2. Update the DB_HOST environment variable with this IP:
 ```bash
 gcloud run services update karaoke-rating \
-    --region=europe-west1 \
+    --region=us-east1 \
     --set-env-vars="DB_HOST=YOUR_ACTUAL_IP_HERE"
 ```
 
@@ -92,7 +92,7 @@ gcloud run services update karaoke-rating \
 ```bash
 # Create VPC connector (optional, for private connection)
 gcloud compute networks vpc-access connectors create karaoke-connector \
-    --region=europe-west1 \
+    --region=us-east1 \
     --subnet=default \
     --subnet-project=$PROJECT_ID \
     --min-instances=2 \
@@ -102,7 +102,7 @@ gcloud compute networks vpc-access connectors create karaoke-connector \
 gcloud run deploy karaoke-rating \
     --image gcr.io/$PROJECT_ID/karaoke-rating \
     --platform managed \
-    --region europe-west1 \
+    --region us-east1 \
     --vpc-connector=karaoke-connector \
     --set-env-vars="DB_HOST=PRIVATE_IP_OF_CLOUD_SQL"
 ```
@@ -118,7 +118,7 @@ echo -n 'GC(*g""\\9SH@{vBr' | gcloud secrets create db-password --data-file=-
 gcloud run deploy karaoke-rating \
     --image gcr.io/$PROJECT_ID/karaoke-rating \
     --platform managed \
-    --region europe-west1 \
+    --region us-east1 \
     --set-env-vars="NODE_ENV=production,DB_HOST=YOUR_IP,DB_PORT=3306,DB_USERNAME=karaoke,DB_DATABASE=karaoke" \
     --set-secrets="DB_PASSWORD=db-password:latest"
 ```
@@ -126,14 +126,14 @@ gcloud run deploy karaoke-rating \
 ## Step 6: Verify Deployment
 ```bash
 # Get service URL
-gcloud run services describe karaoke-rating --region=europe-west1 --format="value(status.url)"
+gcloud run services describe karaoke-rating --region=us-east1 --format="value(status.url)"
 
 # Test the service
 curl https://your-service-url.run.app
 ```
 
 ## Environment Variables Summary
-For your current deployment at `karaoke-rating-203453576607.europe-west1.run.app`, set these:
+For your current deployment at `karaoke-rating-203453576607.us-east1.run.app`, set these:
 
 - `NODE_ENV=production`
 - `DB_HOST=<your-cloud-sql-ip>`
@@ -147,7 +147,7 @@ To update your existing service with the correct environment variables:
 
 ```bash
 gcloud run services update karaoke-rating \
-    --region=europe-west1 \
+    --region=us-east1 \
     --set-env-vars="NODE_ENV=production,DB_HOST=YOUR_CLOUD_SQL_IP,DB_PORT=3306,DB_USERNAME=karaoke,DB_PASSWORD=GC(*g\"\"\\9SH@{vBr,DB_DATABASE=karaoke"
 ```
 
