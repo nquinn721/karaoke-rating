@@ -5,31 +5,36 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { Request } from "express";
+import { UserService } from "../user/user.service";
 
 @Injectable()
 export class AdminGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(private userService: UserService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
 
-    // For development/internal admin interface, allow localhost requests
-    const isLocalhost =
-      request.hostname === "localhost" ||
-      request.hostname === "127.0.0.1" ||
-      request.ip === "::1" ||
-      request.ip === "127.0.0.1";
-
-    // If it's a localhost request, allow it (for admin interface)
-    if (isLocalhost) {
-      return true;
+    // Extract token from Authorization header
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      throw new UnauthorizedException("Authorization token required");
     }
 
-    // For external requests, require admin key
-    const adminKey = request.headers["x-admin-key"] || request.query.adminKey;
-    const validAdminKey = process.env.ADMIN_KEY || "karaoke-admin-2024";
-
-    if (!adminKey || adminKey !== validAdminKey) {
-      throw new UnauthorizedException("Admin access required");
+    const token = authHeader.substring(7); // Remove "Bearer "
+    
+    // Verify token and get user
+    const user = await this.userService.verifyToken(token);
+    if (!user) {
+      throw new UnauthorizedException("Invalid or expired token");
     }
+
+    // Check if user is admin
+    if (!user.isAdmin) {
+      throw new UnauthorizedException("Admin privileges required");
+    }
+
+    // Add user to request for potential use in controllers
+    (request as any).user = user;
 
     return true;
   }

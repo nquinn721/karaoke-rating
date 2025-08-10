@@ -542,7 +542,10 @@ export class ShowsService {
       await this.showRepository.delete(numericId);
 
       // Broadcast show deletion to all connected clients
-      await this.chatGateway.broadcastShowDeleted(show.id.toString(), show.name);
+      await this.chatGateway.broadcastShowDeleted(
+        show.id.toString(),
+        show.name
+      );
 
       return {
         success: true,
