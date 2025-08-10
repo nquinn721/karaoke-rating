@@ -1,14 +1,17 @@
 import {
   ArrowBack as ArrowBackIcon,
   Send as SendIcon,
+  ExpandMore as ExpandMoreIcon,
+  Star as StarIcon,
 } from "@mui/icons-material";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
@@ -49,6 +52,11 @@ const ShowPage: React.FC = observer(() => {
   const [joinToastMessage, setJoinToastMessage] = useState("");
   const prevParticipantsRef = React.useRef<Set<string>>(new Set());
   const initializedRef = React.useRef(false);
+
+  // Rating accordion and snackbar state
+  const [ratingAccordionExpanded, setRatingAccordionExpanded] = useState(true);
+  const [ratingSnackbarOpen, setRatingSnackbarOpen] = useState(false);
+  const [ratingSnackbarMessage, setRatingSnackbarMessage] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -181,10 +189,18 @@ const ShowPage: React.FC = observer(() => {
       // Auto-advance to next queued performance after a successful rating
       await showsStore.nextPerformance(showsStore.currentShow.id);
 
+      // Show success notification and collapse accordion
+      setRatingSnackbarMessage(`✨ Rating submitted! ${currentPerformer.singer} - "${currentPerformer.song}" rated ${rating}/10`);
+      setRatingSnackbarOpen(true);
+      setRatingAccordionExpanded(false);
+
       setRating(5);
       setComment("");
     } catch (error) {
       console.error("Failed to submit rating:", error);
+      // Show error notification
+      setRatingSnackbarMessage("❌ Failed to submit rating. Please try again.");
+      setRatingSnackbarOpen(true);
     }
   };
 
@@ -316,17 +332,42 @@ const ShowPage: React.FC = observer(() => {
 
           {/* Rating Section - only show if there's a current performance */}
           {currentPerformer.singer && (
-            <Card
+            <Accordion 
+              expanded={ratingAccordionExpanded}
+              onChange={(_, isExpanded) => setRatingAccordionExpanded(isExpanded)}
               sx={{
                 mb: 3,
                 border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 2,
+                "&:before": {
+                  display: "none",
+                },
+                "& .MuiAccordionSummary-root": {
+                  borderRadius: 2,
+                },
               }}
             >
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Rate This Performance
-                </Typography>
-                <Box sx={{ mt: 2 }}>
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{
+                  backgroundColor: "rgba(255,255,255,0.05)",
+                  "&:hover": {
+                    backgroundColor: "rgba(255,255,255,0.08)",
+                  },
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <StarIcon sx={{ color: "#ffd700" }} />
+                  <Typography variant="h6">
+                    Rate Performance
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary", ml: 1 }}>
+                    {currentPerformer.singer} - "{currentPerformer.song}"
+                  </Typography>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box sx={{ mt: 1 }}>
                   <Typography gutterBottom>Rating: {rating}/10</Typography>
                   <Slider
                     value={rating}
@@ -367,15 +408,26 @@ const ShowPage: React.FC = observer(() => {
                     variant="contained"
                     onClick={handleSubmitRating}
                     fullWidth
+                    startIcon={<StarIcon />}
                     sx={{
                       borderRadius: 2,
+                      py: 1.5,
+                      background: "linear-gradient(135deg, #ffd700 0%, #ffb300 100%)",
+                      color: "#000",
+                      fontWeight: 600,
+                      "&:hover": {
+                        background: "linear-gradient(135deg, #ffb300 0%, #ff8f00 100%)",
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 4px 12px rgba(255, 215, 0, 0.3)",
+                      },
+                      transition: "all 0.2s ease",
                     }}
                   >
                     Submit Rating
                   </Button>
                 </Box>
-              </CardContent>
-            </Card>
+              </AccordionDetails>
+            </Accordion>
           )}
         </Box>
       )}
@@ -679,6 +731,29 @@ const ShowPage: React.FC = observer(() => {
           sx={{ width: "100%" }}
         >
           {joinToastMessage}
+        </Alert>
+      </Snackbar>
+
+      {/* Rating submission toast */}
+      <Snackbar
+        open={ratingSnackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setRatingSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setRatingSnackbarOpen(false)}
+          severity={ratingSnackbarMessage.includes("❌") ? "error" : "success"}
+          variant="filled"
+          sx={{ 
+            width: "100%",
+            "& .MuiAlert-message": {
+              fontSize: "0.9rem",
+              fontWeight: 500,
+            },
+          }}
+        >
+          {ratingSnackbarMessage}
         </Alert>
       </Snackbar>
     </Box>
