@@ -11,12 +11,14 @@ import {
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
+import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 import { rootStore } from "../stores/RootStore";
 
 const UsernameModal: React.FC = observer(() => {
   const { authStore } = rootStore;
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
+  const { dialogStyles } = useKeyboardAvoidance();
 
   const handleSubmit = async () => {
     if (username.trim()) {
@@ -29,7 +31,7 @@ const UsernameModal: React.FC = observer(() => {
   };
 
   return (
-    <Dialog open={true} maxWidth="sm" fullWidth>
+    <Dialog open={true} maxWidth="sm" fullWidth sx={dialogStyles}>
       <DialogTitle>Welcome to Karaoke Ratings!</DialogTitle>
       <DialogContent>
         <Typography variant="body1" sx={{ mb: 2 }}>

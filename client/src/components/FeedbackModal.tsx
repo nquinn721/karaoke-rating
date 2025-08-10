@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
+import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 import { FeedbackType } from "../stores/FeedbackStore";
 import { rootStore } from "../stores/RootStore";
 
@@ -32,6 +33,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = observer(
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
+    const { dialogStyles } = useKeyboardAvoidance();
 
     const handleSubmit = async () => {
       if (!subject.trim() || !message.trim()) {
@@ -70,7 +72,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = observer(
     };
 
     return (
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth sx={dialogStyles}>
         <DialogTitle>
           <Typography variant="h6" component="div" color="primary">
             Send Feedback

@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
+import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 
 interface LoginModalProps {
   open: boolean;
@@ -24,6 +25,7 @@ export const LoginModal = observer(
     const [username, setUsername] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const { dialogStyles } = useKeyboardAvoidance();
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -66,6 +68,7 @@ export const LoginModal = observer(
         maxWidth="sm"
         fullWidth
         disableEscapeKeyDown={authStore.isLoading}
+        sx={dialogStyles}
       >
         <DialogTitle>
           <Typography variant="h5" component="div">

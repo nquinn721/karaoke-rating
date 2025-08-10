@@ -27,178 +27,176 @@ interface UserMenuProps {
   getUserColor: (username: string) => string;
 }
 
-const UserMenu: React.FC<UserMenuProps> = observer(
-  ({ getUserColor }) => {
-    const { userStore } = rootStore;
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
-    const navigate = useNavigate();
+const UserMenu: React.FC<UserMenuProps> = observer(({ getUserColor }) => {
+  const { userStore } = rootStore;
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const navigate = useNavigate();
 
-    const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-      setAnchorEl(event.currentTarget);
-    };
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-    const handleClose = () => {
-      setAnchorEl(null);
-    };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
-    const handleLogout = () => {
-      // Clear user data and redirect to home
-      userStore.clearUsername();
-      handleClose();
-      navigate("/");
-    };
+  const handleLogout = () => {
+    // Clear user data and redirect to home
+    userStore.clearUsername();
+    handleClose();
+    navigate("/");
+  };
 
-    return (
-      <>
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <IconButton
-            onClick={handleClick}
-            size="small"
-            sx={{ ml: 2 }}
-            aria-controls={anchorEl ? "user-menu" : undefined}
-            aria-haspopup="true"
-            aria-expanded={anchorEl ? "true" : undefined}
-          >
-            <Avatar
-              sx={{
-                width: { xs: 24, sm: 28 },
-                height: { xs: 24, sm: 28 },
-                bgcolor: getUserColor(userStore.username),
-                fontSize: { xs: "0.7rem", sm: "0.75rem" },
-              }}
-            >
-              {userStore.username.charAt(0).toUpperCase()}
-            </Avatar>
-          </IconButton>
-
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            onClick={handleClick}
+  return (
+    <>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <IconButton
+          onClick={handleClick}
+          size="small"
+          sx={{ ml: 2 }}
+          aria-controls={anchorEl ? "user-menu" : undefined}
+          aria-haspopup="true"
+          aria-expanded={anchorEl ? "true" : undefined}
+        >
+          <Avatar
             sx={{
-              fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              whiteSpace: "nowrap",
-              ml: 1,
-              cursor: "pointer",
-              "&:hover": { textDecoration: "underline" },
+              width: { xs: 24, sm: 28 },
+              height: { xs: 24, sm: 28 },
+              bgcolor: getUserColor(userStore.username),
+              fontSize: { xs: "0.7rem", sm: "0.75rem" },
             }}
           >
-            {userStore.username}
-          </Typography>
-          <IconButton
-            onClick={handleClick}
-            size="small"
-            aria-label="Open user menu"
-            sx={{ ml: 0.5 }}
-          >
-            <ArrowDropDownIcon fontSize="small" />
-          </IconButton>
-        </Box>
+            {userStore.username.charAt(0).toUpperCase()}
+          </Avatar>
+        </IconButton>
 
-        <Menu
-          id="user-menu"
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleClose}
-          transformOrigin={{ horizontal: "right", vertical: "top" }}
-          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-          PaperProps={{
-            elevation: 3,
-            sx: {
-              overflow: "visible",
-              filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.1))",
-              mt: 1.5,
-              minWidth: 200,
-              "&:before": {
-                content: '""',
-                display: "block",
-                position: "absolute",
-                top: 0,
-                right: 14,
-                width: 10,
-                height: 10,
-                bgcolor: "background.paper",
-                transform: "translateY(-50%) rotate(45deg)",
-                zIndex: 0,
-              },
-            },
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          onClick={handleClick}
+          sx={{
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            whiteSpace: "nowrap",
+            ml: 1,
+            cursor: "pointer",
+            "&:hover": { textDecoration: "underline" },
           }}
         >
-          <Box sx={{ px: 2, py: 1 }}>
-            <Typography variant="subtitle2" color="text.primary">
-              {userStore.username}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Karaoke Participant
-            </Typography>
-          </Box>
+          {userStore.username}
+        </Typography>
+        <IconButton
+          onClick={handleClick}
+          size="small"
+          aria-label="Open user menu"
+          sx={{ ml: 0.5 }}
+        >
+          <ArrowDropDownIcon fontSize="small" />
+        </IconButton>
+      </Box>
 
-          <Divider />
+      <Menu
+        id="user-menu"
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleClose}
+        transformOrigin={{ horizontal: "right", vertical: "top" }}
+        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+        PaperProps={{
+          elevation: 3,
+          sx: {
+            overflow: "visible",
+            filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.1))",
+            mt: 1.5,
+            minWidth: 200,
+            "&:before": {
+              content: '""',
+              display: "block",
+              position: "absolute",
+              top: 0,
+              right: 14,
+              width: 10,
+              height: 10,
+              bgcolor: "background.paper",
+              transform: "translateY(-50%) rotate(45deg)",
+              zIndex: 0,
+            },
+          },
+        }}
+      >
+        <Box sx={{ px: 2, py: 1 }}>
+          <Typography variant="subtitle2" color="text.primary">
+            {userStore.username}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Karaoke Participant
+          </Typography>
+        </Box>
 
+        <Divider />
+
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            setFeedbackModalOpen(true);
+          }}
+        >
+          <ListItemIcon>
+            <FeedbackIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Send Feedback</ListItemText>
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            navigate("/history");
+          }}
+        >
+          <ListItemIcon>
+            <HistoryIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>My History</ListItemText>
+        </MenuItem>
+
+        {/* Admin link visible only to admins */}
+        {userStore.isAdmin && (
           <MenuItem
             onClick={() => {
               handleClose();
-              setFeedbackModalOpen(true);
+              navigate("/admin");
             }}
           >
             <ListItemIcon>
-              <FeedbackIcon fontSize="small" />
+              <AdminIcon fontSize="small" />
             </ListItemIcon>
-            <ListItemText>Send Feedback</ListItemText>
+            <ListItemText>Admin</ListItemText>
           </MenuItem>
+        )}
 
-          <MenuItem
-            onClick={() => {
-              handleClose();
-              navigate("/history");
-            }}
-          >
-            <ListItemIcon>
-              <HistoryIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>My History</ListItemText>
-          </MenuItem>
+        <MenuItem onClick={handleClose} disabled>
+          <ListItemIcon>
+            <SettingsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Settings</ListItemText>
+        </MenuItem>
 
-          {/* Admin link visible only to admins */}
-          {userStore.isAdmin && (
-            <MenuItem
-              onClick={() => {
-                handleClose();
-                navigate("/admin");
-              }}
-            >
-              <ListItemIcon>
-                <AdminIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Admin</ListItemText>
-            </MenuItem>
-          )}
+        <Divider />
 
-          <MenuItem onClick={handleClose} disabled>
-            <ListItemIcon>
-              <SettingsIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Settings</ListItemText>
-          </MenuItem>
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Logout</ListItemText>
+        </MenuItem>
+      </Menu>
 
-          <Divider />
-
-          <MenuItem onClick={handleLogout}>
-            <ListItemIcon>
-              <LogoutIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Logout</ListItemText>
-          </MenuItem>
-        </Menu>
-
-        <FeedbackModal
-          open={feedbackModalOpen}
-          onClose={() => setFeedbackModalOpen(false)}
-        />
-      </>
-    );
-  }
-);
+      <FeedbackModal
+        open={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+      />
+    </>
+  );
+});
 
 export default UserMenu;

@@ -30,6 +30,7 @@ import {
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 import { rootStore } from "../stores/RootStore";
 import CurrentPerformance from "./CurrentPerformance";
 import RatingsTab from "./RatingsTab";
@@ -43,6 +44,7 @@ const ShowPage: React.FC = observer(() => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [chatMessage, setChatMessage] = useState("");
+  const { dialogStyles } = useKeyboardAvoidance();
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [lastReadMessageCount, setLastReadMessageCount] = useState(0);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -403,7 +405,7 @@ const ShowPage: React.FC = observer(() => {
           },
         }}
       >
-        <Tab label="Rating" />
+        <Tab label="Sing" />
         <Tab
           label={
             <Badge
@@ -415,7 +417,7 @@ const ShowPage: React.FC = observer(() => {
             </Badge>
           }
         />
-        <Tab label="Ratings History" />
+        <Tab label="Ratings" />
       </Tabs>
 
       {activeTab === 0 && (
@@ -802,7 +804,7 @@ const ShowPage: React.FC = observer(() => {
       {activeTab === 2 && <RatingsTab />}
 
       {/* Leave confirmation dialog */}
-      <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)}>
+      <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)} sx={dialogStyles}>
         <DialogTitle>Leave this show?</DialogTitle>
         <DialogContent>
           Leaving will remove any of your queued songs.

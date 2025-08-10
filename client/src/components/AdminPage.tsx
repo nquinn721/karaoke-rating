@@ -32,6 +32,7 @@ import {
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 import { rootStore } from "../stores/RootStore";
 
 const AdminPage: React.FC = observer(() => {
@@ -45,6 +46,7 @@ const AdminPage: React.FC = observer(() => {
     id: string;
     name: string;
   } | null>(null);
+  const { dialogStyles } = useKeyboardAvoidance();
   const [realTimeStats, setRealTimeStats] = useState({
     totalUsers: 0,
     activeShows: 0,
@@ -495,6 +497,7 @@ const AdminPage: React.FC = observer(() => {
         }}
         maxWidth="sm"
         fullWidth
+        sx={dialogStyles}
         PaperProps={{
           sx: {
             background: "rgba(30,30,30,0.95)",
@@ -555,6 +558,7 @@ const AdminPage: React.FC = observer(() => {
         }}
         maxWidth="sm"
         fullWidth
+        sx={dialogStyles}
         PaperProps={{
           sx: {
             background: "rgba(30,30,30,0.95)",

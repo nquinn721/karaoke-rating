@@ -353,16 +353,35 @@ export class ShowsService {
       throw new Error(`Performer ${rateDto.singer} not found`);
     }
 
-    const rating = this.ratingRepository.create({
-      score: rateDto.rating,
-      comment: rateDto.comment || "",
-      songTitle: rateDto.song,
-      userId: user.id,
-      performerId: performer.id,
-      showId: parseInt(rateDto.showId),
+    // Check if a rating already exists for this user, performer, song, and show
+    const existingRating = await this.ratingRepository.findOne({
+      where: {
+        userId: user.id,
+        performerId: performer.id,
+        songTitle: rateDto.song,
+        showId: parseInt(rateDto.showId),
+      },
     });
 
-    const savedRating = await this.ratingRepository.save(rating);
+    let savedRating: Rating;
+
+    if (existingRating) {
+      // Update the existing rating
+      existingRating.score = rateDto.rating;
+      existingRating.comment = rateDto.comment || "";
+      savedRating = await this.ratingRepository.save(existingRating);
+    } else {
+      // Create a new rating
+      const rating = this.ratingRepository.create({
+        score: rateDto.rating,
+        comment: rateDto.comment || "",
+        songTitle: rateDto.song,
+        userId: user.id,
+        performerId: performer.id,
+        showId: parseInt(rateDto.showId),
+      });
+      savedRating = await this.ratingRepository.save(rating);
+    }
 
     // Check if all participants have rated the current performer
     const show = await this.showRepository.findOne({

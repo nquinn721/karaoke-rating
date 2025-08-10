@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
+import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 
 interface ChangeUsernameModalProps {
   open: boolean;
@@ -25,6 +26,7 @@ export const ChangeUsernameModal = observer(
     const [newUsername, setNewUsername] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const { dialogStyles } = useKeyboardAvoidance();
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -75,6 +77,7 @@ export const ChangeUsernameModal = observer(
         maxWidth="sm"
         fullWidth
         disableEscapeKeyDown={authStore.isLoading}
+        sx={dialogStyles}
       >
         <DialogTitle>
           <Typography variant="h5" component="div">

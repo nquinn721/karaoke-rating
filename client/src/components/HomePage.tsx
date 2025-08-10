@@ -27,6 +27,7 @@ import {
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 import { rootStore } from "../stores/RootStore";
 import { ChangeUsernameModal } from "./ChangeUsernameModal";
 import QRScanner from "./QRScanner";
@@ -43,6 +44,7 @@ const HomePage: React.FC = observer(() => {
     "karafun" | "excess" | "dj steve"
   >("karafun");
   const [changeUsernameModalOpen, setChangeUsernameModalOpen] = useState(false);
+  const { dialogStyles } = useKeyboardAvoidance();
 
   // Debug logging
   React.useEffect(() => {
@@ -355,6 +357,7 @@ const HomePage: React.FC = observer(() => {
         onClose={() => setAddModalOpen(false)}
         maxWidth="sm"
         fullWidth
+        sx={dialogStyles}
       >
         <DialogTitle>Add Show</DialogTitle>
         <DialogContent>
