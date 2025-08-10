@@ -1,0 +1,22 @@
+Chat Badge Implementation Changes for ShowPage.tsx:
+
+1. Add Badge to imports:
+   - Add "Badge," to the @mui/material imports
+
+2. Add state variables after existing useState declarations:
+   - const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+   - const [lastReadMessageCount, setLastReadMessageCount] = useState(0);
+
+3. Update the first useEffect to initialize read count:
+   - Add: setLastReadMessageCount(chatStore.messages.length); after chatStore.joinShow()
+
+4. Add new useEffect for tracking unread messages:
+   - Track when chatStore.messages.length changes
+   - Calculate unread count based on difference
+
+5. Add handleTabChange function:
+   - Reset unread count when switching to chat tab
+
+6. Update Tabs component:
+   - Wrap Chat tab with Badge component
+   - Show unread count when > 0

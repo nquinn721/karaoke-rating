@@ -1,7 +1,26 @@
 import {
   ArrowBack as ArrowBackIcon,
-  ExpandMore as ExpandMoreIcon,
   Send as SendIcon,
+   useEffect(() => {
+    if (id) {
+      showsStore.fetchShow(id);
+      // Socket is already initialized in RootStore
+      chatStore.joinShow(id, userStore.username);
+      
+      // Initialize read message count to current count on component mount
+      setLastReadMessageCount(chatStore.messages.length);
+    }
+
+    return () => {
+      if (id) {
+        chatStore.leaveShow(id);
+        // Fire-and-forget: ask API to remove this user's queued songs
+        try {
+          showsStore.removeQueueBySinger(id, userStore.username);
+        } catch {}
+      }
+    };
+  }, [id]);pandMoreIcon,
   Star as StarIcon,
 } from "@mui/icons-material";
 import {
@@ -66,9 +85,6 @@ const ShowPage: React.FC = observer(() => {
       showsStore.fetchShow(id);
       // Socket is already initialized in RootStore
       chatStore.joinShow(id, userStore.username);
-
-      // Initialize read message count to current count on component mount
-      setLastReadMessageCount(chatStore.messages.length);
     }
 
     return () => {
@@ -81,16 +97,6 @@ const ShowPage: React.FC = observer(() => {
       }
     };
   }, [id]);
-
-  // Track unread messages
-  useEffect(() => {
-    const currentMessageCount = chatStore.messages.length;
-    if (currentMessageCount > lastReadMessageCount) {
-      setUnreadMessageCount(currentMessageCount - lastReadMessageCount);
-    } else {
-      setUnreadMessageCount(0);
-    }
-  }, [chatStore.messages.length, lastReadMessageCount]);
 
   const handleBackClick = () => {
     setLeaveOpen(true);
@@ -202,13 +208,11 @@ const ShowPage: React.FC = observer(() => {
         userStore.username
       );
 
-      // Remove auto-advance logic - now handled by backend
-      // Backend will automatically advance when all participants have rated
+      // Auto-advance to next queued performance after a successful rating
+      await showsStore.nextPerformance(showsStore.currentShow.id);
 
       // Show success notification and collapse accordion
-      setRatingSnackbarMessage(
-        `✨ Rating submitted! ${currentPerformer.singer} - "${currentPerformer.song}" rated ${rating}/10`
-      );
+      setRatingSnackbarMessage(`✨ Rating submitted! ${currentPerformer.singer} - "${currentPerformer.song}" rated ${rating}/10`);
       setRatingSnackbarOpen(true);
       setRatingAccordionExpanded(false);
 
@@ -272,15 +276,6 @@ const ShowPage: React.FC = observer(() => {
     );
   }
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-    // If switching to chat tab, mark messages as read
-    if (newValue === 1) {
-      setLastReadMessageCount(chatStore.messages.length);
-      setUnreadMessageCount(0);
-    }
-  };
-
   return (
     <Box>
       {/* Clean mobile-friendly header */}
@@ -306,36 +301,19 @@ const ShowPage: React.FC = observer(() => {
           <IconButton onClick={handleBackClick} sx={{ mr: 1, flexShrink: 0 }}>
             <ArrowBackIcon />
           </IconButton>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: "bold",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                minWidth: 0,
-                fontSize: { xs: "1.25rem", sm: "1.5rem" },
-                lineHeight: 1.2,
-              }}
-            >
-              {showsStore.currentShow.name}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: "text.secondary",
-                fontSize: "0.75rem",
-                fontWeight: 500,
-                display: "block",
-                lineHeight: 1,
-              }}
-            >
-              {Array.isArray(currentParticipants)
-                ? `${currentParticipants.filter(Boolean).length} singers`
-                : "0 singers"}
-            </Typography>
-          </Box>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: "bold",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              minWidth: 0,
+              fontSize: { xs: "1.25rem", sm: "1.5rem" },
+            }}
+          >
+            {showsStore.currentShow.name}
+          </Typography>
         </Box>
 
         {/* User info - always horizontal */}
@@ -344,77 +322,28 @@ const ShowPage: React.FC = observer(() => {
 
       <Tabs
         value={activeTab}
-        onChange={handleTabChange}
+        onChange={(_, newValue) => setActiveTab(newValue)}
         variant="fullWidth"
         sx={{
           mb: 3,
-          bgcolor: "rgba(255, 255, 255, 0.02)",
-          borderRadius: 2,
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          overflow: "hidden",
-          "& .MuiTabs-flexContainer": {
-            height: "56px",
-          },
           "& .MuiTab-root": {
             fontWeight: "600",
-            fontSize: { xs: "0.85rem", sm: "0.95rem" },
+            fontSize: { xs: "0.8rem", sm: "0.9rem" },
             textTransform: "none",
-            minHeight: "56px",
-            borderRadius: 0,
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            position: "relative",
-            overflow: "hidden",
-            "&:not(:last-child)": {
-              borderRight: "1px solid rgba(255, 255, 255, 0.08)",
-            },
-            "&:before": {
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background:
-                "linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)",
-              opacity: 0,
-              transition: "opacity 0.3s ease",
-            },
-            "&:hover": {
-              color: "primary.light",
-              "&:before": {
-                opacity: 1,
-              },
-            },
+            minHeight: { xs: "44px", sm: "48px" },
             "&.Mui-selected": {
               color: "primary.main",
-              fontWeight: "700",
-              background:
-                "linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.05) 100%)",
-              "&:before": {
-                opacity: 0,
-              },
             },
           },
           "& .MuiTabs-indicator": {
-            height: "3px",
-            borderRadius: "3px 3px 0 0",
-            background: "linear-gradient(90deg, #ff6b6b 0%, #ffa726 100%)",
-            boxShadow: "0 0 12px rgba(255, 107, 107, 0.4)",
+            height: "2px",
+            borderRadius: "1px",
+            backgroundColor: "primary.main",
           },
         }}
       >
         <Tab label="Rating" />
-        <Tab
-          label={
-            <Badge
-              badgeContent={unreadMessageCount}
-              color="error"
-              invisible={unreadMessageCount === 0}
-            >
-              Chat
-            </Badge>
-          }
-        />
+        <Tab label="Chat" />
         <Tab label="Ratings History" />
       </Tabs>
 
@@ -425,11 +354,9 @@ const ShowPage: React.FC = observer(() => {
 
           {/* Rating Section - only show if there's a current performance */}
           {currentPerformer.singer && (
-            <Accordion
+            <Accordion 
               expanded={ratingAccordionExpanded}
-              onChange={(_, isExpanded) =>
-                setRatingAccordionExpanded(isExpanded)
-              }
+              onChange={(_, isExpanded) => setRatingAccordionExpanded(isExpanded)}
               sx={{
                 mb: 3,
                 border: "1px solid rgba(255,255,255,0.1)",
@@ -453,11 +380,10 @@ const ShowPage: React.FC = observer(() => {
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <StarIcon sx={{ color: "#ffd700" }} />
-                  <Typography variant="h6">Rate Performance</Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "text.secondary", ml: 1 }}
-                  >
+                  <Typography variant="h6">
+                    Rate Performance
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary", ml: 1 }}>
                     {currentPerformer.singer} - "{currentPerformer.song}"
                   </Typography>
                 </Box>
@@ -508,13 +434,11 @@ const ShowPage: React.FC = observer(() => {
                     sx={{
                       borderRadius: 2,
                       py: 1.5,
-                      background:
-                        "linear-gradient(135deg, #ffd700 0%, #ffb300 100%)",
+                      background: "linear-gradient(135deg, #ffd700 0%, #ffb300 100%)",
                       color: "#000",
                       fontWeight: 600,
                       "&:hover": {
-                        background:
-                          "linear-gradient(135deg, #ffb300 0%, #ff8f00 100%)",
+                        background: "linear-gradient(135deg, #ffb300 0%, #ff8f00 100%)",
                         transform: "translateY(-2px)",
                         boxShadow: "0 4px 12px rgba(255, 215, 0, 0.3)",
                       },
@@ -843,7 +767,7 @@ const ShowPage: React.FC = observer(() => {
           onClose={() => setRatingSnackbarOpen(false)}
           severity={ratingSnackbarMessage.includes("❌") ? "error" : "success"}
           variant="filled"
-          sx={{
+          sx={{ 
             width: "100%",
             "& .MuiAlert-message": {
               fontSize: "0.9rem",

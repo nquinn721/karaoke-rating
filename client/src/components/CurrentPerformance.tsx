@@ -24,7 +24,7 @@ import {
   Typography,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useAutocomplete } from "../hooks/useAutocomplete";
 import { rootStore } from "../stores/RootStore";
 
@@ -48,15 +48,6 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
     const participants = (
       wsParticipants.length ? wsParticipants : show?.participants || []
     ).filter(Boolean);
-
-    // Prefer live current performer from sockets
-    const livePerformer = chatStore.currentPerformerByShow.get(showId);
-    const currentPerformer = useMemo(() => {
-      return {
-        singer: livePerformer?.singer ?? show?.currentSinger,
-        song: livePerformer?.song ?? show?.currentSong,
-      } as { singer?: string; song?: string };
-    }, [livePerformer, show?.currentSinger, show?.currentSong]);
 
     // Prefer live queue
     const liveQueue = chatStore.queueByShow.get(showId);
@@ -317,50 +308,13 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
             </Box>
 
             {/* Step 3: Current Performance */}
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                mt: 3,
-                mb: 2,
-              }}
-            >
-              <Typography variant="h6">3. Current Performance</Typography>
-            </Box>
-
-            {currentPerformer?.singer ? (
-              <>
-                <Typography
-                  variant="h5"
-                  color="primary"
-                  gutterBottom
-                  sx={{ fontWeight: "bold" }}
-                >
-                  {currentPerformer.singer}
-                </Typography>
-                <Typography
-                  variant="subtitle1"
-                  color="text.secondary"
-                  gutterBottom
-                  sx={{ fontSize: "1.1rem" }}
-                >
-                  {currentPerformer.song}
-                </Typography>
-              </>
-            ) : (
-              <Typography color="text.secondary">
-                No one is performing right now
-              </Typography>
-            )}
-
-            {/* Step 4: Next */}
+            {/* Step 3: Next */}
             <Box sx={{ mt: 3 }}>
               <Typography
                 variant="subtitle2"
                 sx={{ fontWeight: 700, mb: 1, opacity: 0.8 }}
               >
-                4. Next
+                3. Next
               </Typography>
               <Button
                 fullWidth

@@ -364,6 +364,41 @@ export class ShowsService {
 
     const savedRating = await this.ratingRepository.save(rating);
 
+    // Check if all participants have rated the current performer
+    const show = await this.showRepository.findOne({
+      where: { id: parseInt(rateDto.showId) },
+    });
+
+    if (show && show.currentSingerId) {
+      // Get all participants in the show (excluding the current performer)
+      const participantCount =
+        show.participants?.filter(
+          (participantId) => participantId !== show.currentSingerId
+        ).length || 0;
+
+      if (participantCount > 0) {
+        // Count how many participants have rated this specific performance
+        const currentPerformerName = await this.getUsernameById(
+          show.currentSingerId
+        );
+        const ratingsForCurrentPerformance = await this.ratingRepository.count({
+          where: {
+            showId: parseInt(rateDto.showId),
+            performerId: show.currentSingerId,
+            songTitle: show.currentSong,
+          },
+        });
+
+        // If all participants (except performer) have rated, auto-advance
+        if (ratingsForCurrentPerformance >= participantCount) {
+          console.log(
+            `All participants have rated ${currentPerformerName}. Auto-advancing...`
+          );
+          await this.advanceQueue(rateDto.showId);
+        }
+      }
+    }
+
     // Notify clients
     this.chatGateway.server.to(rateDto.showId).emit("ratingAdded", {
       rating: savedRating,
