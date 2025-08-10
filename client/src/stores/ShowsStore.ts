@@ -369,12 +369,7 @@ export class ShowsStore {
       const result = await this.baseAPI.delete<{
         success: boolean;
         message: string;
-      }>(`/api/shows/admin/${showId}`, {
-        headers: {
-          "x-admin-key":
-            process.env.REACT_APP_ADMIN_KEY || "karaoke-admin-2024",
-        },
-      });
+      }>(`/api/shows/admin/${showId}`);
 
       if (result.success) {
         runInAction(() => {
