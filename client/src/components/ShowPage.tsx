@@ -53,7 +53,7 @@ const ShowPage: React.FC = observer(() => {
   useEffect(() => {
     if (id) {
       showsStore.fetchShow(id);
-      chatStore.initializeSocket();
+      // Socket is already initialized in RootStore
       chatStore.joinShow(id, userStore.username);
     }
 

@@ -31,6 +31,9 @@ export class Show {
   @Column({ length: 200, nullable: true })
   currentSong: string; // Current song being performed
 
+  @Column({ default: true })
+  isValid: boolean; // Whether the show is still valid/active
+
   @CreateDateColumn()
   createdAt: Date;
 

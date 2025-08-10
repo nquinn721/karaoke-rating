@@ -22,6 +22,9 @@ export class User {
   @Column({ type: "boolean", default: false })
   isAdmin: boolean; // Admin privileges
 
+  @Column({ type: "boolean", default: false })
+  isLoggedIn: boolean; // Whether user is currently logged in
+
   @CreateDateColumn()
   createdAt: Date;
 

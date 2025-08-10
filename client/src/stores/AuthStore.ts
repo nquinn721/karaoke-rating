@@ -5,6 +5,7 @@ export interface User {
   username: string;
   createdAt: string;
   isAdmin: boolean;
+  isLoggedIn?: boolean;
 }
 
 export interface LoginResponse {
@@ -20,9 +21,11 @@ export class AuthStore {
   isAuthenticated = false;
   isLoading = false;
   isInitializing = true; // Track initial load state
+  private chatStore: any; // Will be injected from RootStore
 
-  constructor() {
+  constructor(chatStore?: any) {
     makeAutoObservable(this);
+    this.chatStore = chatStore;
     this.loadFromStorage();
   }
 
@@ -67,6 +70,12 @@ export class AuthStore {
     this.isInitializing = false;
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_data");
+
+    // Disconnect socket to trigger server-side logout
+    if (this.chatStore && this.chatStore.disconnect) {
+      this.chatStore.disconnect();
+      // Socket will be re-initialized automatically when needed
+    }
   }
 
   async login(
@@ -94,6 +103,11 @@ export class AuthStore {
         this.authToken = data.authToken;
         this.isAuthenticated = true;
         this.saveToStorage();
+
+        // Authenticate the socket connection with the new token
+        if (this.chatStore && this.chatStore.authenticateSocket) {
+          this.chatStore.authenticateSocket();
+        }
 
         return {
           success: true,

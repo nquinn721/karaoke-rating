@@ -78,6 +78,7 @@ export class ShowsService {
 
   async getAllShows(): Promise<ShowInterface[]> {
     const shows = await this.showRepository.find({
+      where: { isValid: true }, // Only return valid shows
       relations: ["ratings", "ratings.performer"],
       order: { createdAt: "DESC" },
     });
@@ -101,6 +102,45 @@ export class ShowsService {
             showId: rating.showId?.toString() || "",
           })) || [],
         createdAt: show.createdAt,
+        isValid: show.isValid,
+        queue: show.queue || [],
+        currentSinger: show.currentSingerId
+          ? await this.getUsernameById(show.currentSingerId)
+          : undefined,
+        currentSong: show.currentSong,
+      }))
+    );
+
+    return processedShows;
+  }
+
+  async getAllShowsIncludingInvalid(): Promise<ShowInterface[]> {
+    const shows = await this.showRepository.find({
+      // No where clause - return all shows regardless of isValid status
+      relations: ["ratings", "ratings.performer"],
+      order: { createdAt: "DESC" },
+    });
+
+    // Process each show with async operations
+    const processedShows = await Promise.all(
+      shows.map(async (show) => ({
+        id: show.id.toString(),
+        name: show.name,
+        venue: show.venue as "karafun" | "excess" | "dj steve",
+        participants: await this.getUsernamesByIds(show.participants || []),
+        ratings:
+          show.ratings?.map((rating) => ({
+            id: rating.id.toString(),
+            rating: Number(rating.score),
+            comment: rating.comment || "",
+            ratedBy: rating.performer?.username || "",
+            singer: rating.performer?.username || "",
+            song: rating.songTitle || "",
+            createdAt: rating.createdAt,
+            showId: rating.showId?.toString() || "",
+          })) || [],
+        createdAt: show.createdAt,
+        isValid: show.isValid,
         queue: show.queue || [],
         currentSinger: show.currentSingerId
           ? await this.getUsernameById(show.currentSingerId)
@@ -142,6 +182,7 @@ export class ShowsService {
           showId: rating.showId?.toString() || "",
         })) || [],
       createdAt: show.createdAt,
+      isValid: show.isValid,
       queue: show.queue || [],
       currentSinger: show.currentSingerId
         ? await this.getUsernameById(show.currentSingerId)
@@ -411,5 +452,63 @@ export class ShowsService {
     }
 
     return this.getShow(showId);
+  }
+
+  async invalidateAllShows(): Promise<{ affected: number }> {
+    const result = await this.showRepository.update(
+      { isValid: true }, // Only update currently valid shows
+      { isValid: false }
+    );
+    return { affected: result.affected || 0 };
+  }
+
+  async deleteShow(id: string): Promise<{ success: boolean; message: string }> {
+    const numericId = parseInt(id);
+    if (isNaN(numericId)) {
+      return { success: false, message: "Invalid show ID" };
+    }
+
+    try {
+      // First check if show exists
+      const show = await this.showRepository.findOne({
+        where: { id: numericId },
+        relations: ["ratings"],
+      });
+
+      if (!show) {
+        return { success: false, message: "Show not found" };
+      }
+
+      // Delete associated ratings first (if any)
+      if (show.ratings && show.ratings.length > 0) {
+        await this.ratingRepository.delete({ showId: numericId });
+      }
+
+      // Delete the show
+      await this.showRepository.delete(numericId);
+
+      return {
+        success: true,
+        message: `Show "${show.name}" and ${show.ratings?.length || 0} associated ratings deleted successfully`,
+      };
+    } catch (error) {
+      console.error("Error deleting show:", error);
+      return { success: false, message: "Failed to delete show" };
+    }
+  }
+
+  async deleteAllShows(): Promise<{ affected: number }> {
+    try {
+      // Delete all ratings first
+      await this.ratingRepository.delete({});
+
+      // Then delete all shows
+      const result = await this.showRepository.delete({});
+
+      return { affected: result.affected || 0 };
+    } catch (error) {
+      console.error("Error deleting all shows:", error);
+      return { affected: 0 };
+    }
   }
 }

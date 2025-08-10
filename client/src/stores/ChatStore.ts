@@ -41,6 +41,12 @@ export class ChatStore {
       runInAction(() => {
         this.connected = true;
       });
+
+      // Authenticate with server if we have a token
+      const authToken = localStorage.getItem("auth_token");
+      if (authToken) {
+        this.socket?.emit("authenticate", { token: authToken });
+      }
     });
 
     this.socket.on("disconnect", () => {
@@ -48,6 +54,18 @@ export class ChatStore {
         this.connected = false;
         this.currentShowId = null;
       });
+    });
+
+    // Handle authentication success
+    this.socket.on("authSuccess", (data: { user: any }) => {
+      console.log("Socket authentication successful:", data.user);
+      // User is now authenticated on the socket connection
+    });
+
+    // Handle authentication error
+    this.socket.on("authError", (data: { message: string }) => {
+      console.error("Socket authentication failed:", data.message);
+      // Could trigger re-authentication or logout
     });
 
     this.socket.on("newMessage", (message: ChatMessage) => {
@@ -181,6 +199,14 @@ export class ChatStore {
       this.liveShows = [];
       this.queueByShow.clear();
       this.currentPerformerByShow.clear();
+    }
+  }
+
+  // Method to authenticate after login
+  authenticateSocket() {
+    const token = localStorage.getItem("auth_token");
+    if (this.socket && this.connected && token) {
+      this.socket.emit("authenticate", { token });
     }
   }
 

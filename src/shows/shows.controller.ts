@@ -100,4 +100,26 @@ export class ShowsController {
   ): Promise<Show | undefined> {
     return this.showsService.removeQueueBySinger(id, body.singer);
   }
+
+  @Post("admin/invalidate-all")
+  async invalidateAllShows(): Promise<{ affected: number }> {
+    return this.showsService.invalidateAllShows();
+  }
+
+  @Get("admin/all")
+  async getAllShowsIncludingInvalid(): Promise<Show[]> {
+    return this.showsService.getAllShowsIncludingInvalid();
+  }
+
+  @Delete("admin/delete-all")
+  async deleteAllShows(): Promise<{ affected: number }> {
+    return this.showsService.deleteAllShows();
+  }
+
+  @Delete(":id")
+  async deleteShow(
+    @Param("id") id: string
+  ): Promise<{ success: boolean; message: string }> {
+    return this.showsService.deleteShow(id);
+  }
 }

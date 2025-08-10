@@ -12,6 +12,7 @@ export interface Show {
   participants: string[]; // Display names for interface
   ratings: Rating[];
   createdAt: Date;
+  isValid?: boolean; // Whether the show is still valid/active
   // New: upcoming performances queue
   queue: QueueItem[];
 }

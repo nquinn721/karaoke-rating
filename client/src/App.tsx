@@ -21,14 +21,14 @@ const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({
 };
 
 const App: React.FC = observer(() => {
-  const { userStore, showsStore, chatStore, authStore } = rootStore;
+  const { userStore, showsStore, authStore } = rootStore;
 
-  // Ensure shows load on first visit and websockets are ready
+  // Ensure shows load on first visit
   React.useEffect(() => {
     if (!showsStore.shows.length) {
       showsStore.fetchShows();
     }
-    chatStore.initializeSocket();
+    // Socket initialization is handled in RootStore
   }, []);
 
   // Show loading spinner while checking for saved authentication

@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import {
   ConnectedSocket,
   MessageBody,
+  OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
@@ -13,6 +14,7 @@ import { Repository } from "typeorm";
 import { FeedbackService } from "../feedback/feedback.service";
 import { ShowsService } from "../shows/shows.service";
 import { User } from "../user/entities/user.entity";
+import { UserService } from "../user/user.service";
 import { ChatMessage } from "./chat.interface";
 
 @WebSocketGateway({
@@ -20,7 +22,7 @@ import { ChatMessage } from "./chat.interface";
     origin: "*",
   },
 })
-export class ChatGateway implements OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -30,7 +32,8 @@ export class ChatGateway implements OnGatewayDisconnect {
     @Inject(forwardRef(() => ShowsService))
     private readonly showsService: ShowsService,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
+    private readonly userService: UserService
   ) {}
 
   private messages: ChatMessage[] = [];
@@ -39,8 +42,87 @@ export class ChatGateway implements OnGatewayDisconnect {
   // Track username and showId per socket for admin view
   private socketMeta: Map<
     string,
-    { username?: string; showId?: string; userId?: number }
+    {
+      username?: string;
+      showId?: string;
+      userId?: number;
+      connectedAt: Date;
+      user?: any;
+    }
   > = new Map();
+
+  async handleConnection(client: Socket) {
+    console.log(`Client connected: ${client.id}`);
+
+    // Initialize socket metadata
+    this.socketMeta.set(client.id, {
+      connectedAt: new Date(),
+      username: undefined,
+      showId: undefined,
+      userId: undefined,
+      user: undefined,
+    });
+
+    // Emit updated active users to admin
+    this.emitAdminActiveUsers();
+  }
+
+  @SubscribeMessage("authenticate")
+  async handleAuthenticate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { token: string }
+  ) {
+    try {
+      if (!data.token) {
+        client.emit("authError", { message: "Token is required" });
+        return;
+      }
+
+      // Verify token and get user
+      const user = await this.userService.verifyToken(data.token);
+      if (!user) {
+        client.emit("authError", { message: "Invalid token" });
+        return;
+      }
+
+      // Set user as logged in
+      await this.userService.setUserLoggedIn(user.id, true);
+
+      // Store user object on socket instance
+      (client as any).user = user;
+
+      // Update socket metadata
+      const meta = this.socketMeta.get(client.id) || {
+        connectedAt: new Date(),
+      };
+      this.socketMeta.set(client.id, {
+        ...meta,
+        username: user.username,
+        userId: user.id,
+        user: user,
+      });
+
+      console.log(
+        `User authenticated: ${user.username} (${user.id}) on socket ${client.id}`
+      );
+
+      // Emit success
+      client.emit("authSuccess", {
+        user: {
+          id: user.id,
+          username: user.username,
+          isAdmin: user.isAdmin,
+          isLoggedIn: true,
+        },
+      });
+
+      // Emit updated active users to admin
+      this.emitAdminActiveUsers();
+    } catch (error) {
+      console.error("Authentication error:", error);
+      client.emit("authError", { message: "Authentication failed" });
+    }
+  }
 
   private getParticipants(showId: string): string[] {
     const map = this.participantsByShow.get(showId);
@@ -60,7 +142,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     }
     map.set(socketId, username);
     // update meta
-    const meta = this.socketMeta.get(socketId) || {};
+    const meta = this.socketMeta.get(socketId) || { connectedAt: new Date() };
     this.socketMeta.set(socketId, { ...meta, username, showId, userId });
   }
 
@@ -70,7 +152,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     map.delete(socketId);
     if (map.size === 0) this.participantsByShow.delete(showId);
     // clear showId if no longer in this show
-    const meta = this.socketMeta.get(socketId) || {};
+    const meta = this.socketMeta.get(socketId) || { connectedAt: new Date() };
     if (meta.showId === showId)
       this.socketMeta.set(socketId, { ...meta, showId: undefined });
   }
@@ -110,6 +192,11 @@ export class ChatGateway implements OnGatewayDisconnect {
     const meta = this.socketMeta.get(socketId);
     this.removeParticipant(showId, socketId);
 
+    // Update socket metadata to clear showId if leaving current show
+    if (meta?.showId === showId) {
+      this.socketMeta.set(socketId, { ...meta, showId: undefined });
+    }
+
     // Update database if user has an ID and is leaving this specific show
     if (meta?.userId && meta.showId === showId) {
       try {
@@ -123,15 +210,85 @@ export class ChatGateway implements OnGatewayDisconnect {
     }
   }
 
-  private emitAdminActiveUsers() {
-    const users = Array.from(this.socketMeta.entries()).map(
-      ([socketId, meta]) => ({
-        socketId,
-        username: meta.username || "",
-        showId: meta.showId,
-      })
-    );
-    this.server.emit("adminActiveUsers", users);
+  private async emitAdminActiveUsers() {
+    try {
+      // Only get metadata for actually connected sockets
+      const connectedSocketIds = new Set(
+        Array.from(this.server.sockets.sockets.keys())
+      );
+
+      // Filter socketMeta to only include connected sockets
+      const validSocketMeta = Array.from(this.socketMeta.entries()).filter(
+        ([socketId]) => connectedSocketIds.has(socketId)
+      );
+
+      // Clean up metadata for disconnected sockets
+      for (const [socketId] of this.socketMeta.entries()) {
+        if (!connectedSocketIds.has(socketId)) {
+          this.socketMeta.delete(socketId);
+        }
+      }
+
+      // Get enhanced user data from valid socket metadata
+      const userPromises = validSocketMeta.map(async ([socketId, meta]) => {
+        let user = meta.user;
+
+        // If we don't have user data cached and have userId, fetch it
+        if (!user && meta.userId) {
+          try {
+            user = await this.userRepository.findOne({
+              where: { id: meta.userId },
+            });
+            // Cache the user data
+            meta.user = user;
+          } catch (error) {
+            console.error("Error fetching user:", error);
+          }
+        }
+
+        return {
+          socketId,
+          username:
+            meta.username ||
+            user?.username ||
+            `Guest-${socketId.substring(0, 6)}`,
+          showId: meta.showId,
+          userId: meta.userId,
+          user: user
+            ? {
+                id: user.id,
+                username: user.username,
+                isAdmin: user.isAdmin,
+                createdAt: user.createdAt,
+              }
+            : null,
+          connectedAt: meta.connectedAt,
+          isAdmin: user?.isAdmin || false,
+          lastActivity: meta.connectedAt,
+        };
+      });
+
+      const users = await Promise.all(userPromises);
+      this.server.emit("adminActiveUsers", users);
+    } catch (error) {
+      console.error("Error emitting admin active users:", error);
+      // Basic fallback with connected sockets only
+      const connectedSocketIds = new Set(
+        Array.from(this.server.sockets.sockets.keys())
+      );
+      const users = Array.from(this.socketMeta.entries())
+        .filter(([socketId]) => connectedSocketIds.has(socketId))
+        .map(([socketId, meta]) => ({
+          socketId,
+          username: meta.username || `Guest-${socketId.substring(0, 6)}`,
+          showId: meta.showId,
+          userId: meta.userId,
+          connectedAt: meta.connectedAt,
+          isAdmin: false,
+          lastActivity: meta.connectedAt,
+        }));
+      this.server.emit("adminActiveUsers", users);
+    }
   }
 
   @SubscribeMessage("adminSubscribe")
@@ -193,6 +350,15 @@ export class ChatGateway implements OnGatewayDisconnect {
     if (!username) username = "Unknown";
 
     this.addParticipant(data.showId, client.id, username, data.userId);
+
+    // Update socket metadata
+    const meta = this.socketMeta.get(client.id) || { connectedAt: new Date() };
+    this.socketMeta.set(client.id, {
+      ...meta,
+      username,
+      showId: data.showId,
+      userId: data.userId,
+    });
 
     // Update database if user has an ID
     if (data.userId) {
@@ -271,20 +437,51 @@ export class ChatGateway implements OnGatewayDisconnect {
   }
 
   async handleDisconnect(client: Socket) {
+    console.log(`Client disconnected: ${client.id}`);
+
+    // Get user from socket metadata before cleanup
+    const meta = this.socketMeta.get(client.id);
+    const user = (client as any).user || meta?.user;
+
+    // Set user as logged out if they were authenticated
+    if (user && user.id) {
+      try {
+        await this.userService.setUserLoggedIn(user.id, false);
+        console.log(`User logged out: ${user.username} (${user.id})`);
+      } catch (error) {
+        console.error("Error setting user logged out:", error);
+      }
+    }
+
+    // Remove from all shows and clean up metadata
     await this.removeParticipantFromAll(client);
+
+    // Remove socket metadata
+    this.socketMeta.delete(client.id);
+
+    // Emit updated active users to admin
+    this.emitAdminActiveUsers();
   }
 
   @SubscribeMessage("updateUsername")
-  handleUpdateUsername(
+  async handleUpdateUsername(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { username: string }
   ) {
+    // Update socket metadata
+    const currentMeta = this.socketMeta.get(client.id) || {
+      connectedAt: new Date(),
+    };
+    this.socketMeta.set(client.id, { ...currentMeta, username: data.username });
+
     // Update username for this socket across all joined shows
     for (const [showId, map] of this.participantsByShow.entries()) {
       if (map.has(client.id)) {
         map.set(client.id, data.username);
         // update meta
-        const meta = this.socketMeta.get(client.id) || {};
+        const meta = this.socketMeta.get(client.id) || {
+          connectedAt: new Date(),
+        };
         this.socketMeta.set(client.id, { ...meta, username: data.username });
         // Broadcast updated participants to everyone
         this.server.emit("participantsUpdated", {

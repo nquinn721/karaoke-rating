@@ -7,10 +7,10 @@ import { UserStore } from "./UserStore";
 
 export class RootStore {
   baseAPI = new BaseAPIStore();
-  authStore = new AuthStore();
+  chatStore = new ChatStore(this.baseAPI);
+  authStore = new AuthStore(this.chatStore);
   userStore = new UserStore(this);
   showsStore = new ShowsStore(this.baseAPI);
-  chatStore = new ChatStore(this.baseAPI);
   feedbackStore = new FeedbackStore();
 
   constructor() {

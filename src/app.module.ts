@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ScheduleModule } from "@nestjs/schedule";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { join } from "path";
@@ -9,16 +10,20 @@ import { ChatModule } from "./chat/chat.module";
 import { FeedbackModule } from "./feedback/feedback.module";
 import { MusicModule } from "./music/music.module";
 import { RatingModule } from "./rating/rating.module";
+import { SchedulerModule } from "./scheduler/scheduler.module";
 import { ShowsModule } from "./shows/shows.module";
 import { UserModule } from "./user/user.module";
 // Entities
 import { Feedback } from "./feedback/entities/feedback.entity";
 import { Rating } from "./rating/entities/rating.entity";
 import { Show } from "./shows/entities/show.entity";
+import { UserSession } from "./user/entities/user-session.entity";
 import { User } from "./user/entities/user.entity";
 
 @Module({
   imports: [
+    // Configure the scheduler module
+    ScheduleModule.forRoot(),
     // Database configuration - updated user permissions
     TypeOrmModule.forRoot({
       type: "mysql",
@@ -37,7 +42,7 @@ import { User } from "./user/entities/user.entity";
       username: process.env.DB_USERNAME || "admin",
       password: process.env.DB_PASSWORD || "password",
       database: process.env.DB_DATABASE || "karaoke",
-      entities: [User, Show, Rating, Feedback], // Database entities
+      entities: [User, Show, Rating, Feedback, UserSession], // Database entities
       synchronize: true, // Enable sync for production to create tables
       ssl: process.env.NODE_ENV === "production" ? false : false, // No SSL needed for Unix socket
     }),
@@ -57,6 +62,7 @@ import { User } from "./user/entities/user.entity";
     AuthModule,
     FeedbackModule,
     MusicModule,
+    SchedulerModule, // Add scheduler module
   ],
   controllers: [AppController],
   providers: [AppService],

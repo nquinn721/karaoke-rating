@@ -50,8 +50,9 @@ export class UserService {
       username
     );
 
-    // Update user with new token
+    // Update user with new token and set as logged in
     user.authToken = authToken;
+    user.isLoggedIn = true;
     user = await this.userRepository.save(user);
 
     return {
@@ -267,5 +268,20 @@ export class UserService {
             : 0,
       },
     };
+  }
+
+  async setUserLoggedIn(userId: number, isLoggedIn: boolean): Promise<void> {
+    await this.userRepository.update(userId, { isLoggedIn });
+  }
+
+  async setUserLoggedInByToken(
+    token: string,
+    isLoggedIn: boolean
+  ): Promise<User | null> {
+    const user = await this.verifyToken(token);
+    if (!user) return null;
+
+    await this.setUserLoggedIn(user.id, isLoggedIn);
+    return { ...user, isLoggedIn };
   }
 }
