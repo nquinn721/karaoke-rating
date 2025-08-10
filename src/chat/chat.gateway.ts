@@ -494,4 +494,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.emitAdminActiveUsers();
     client.emit("usernameUpdated", { username: data.username });
   }
+
+  // Broadcast show deletion to all connected clients
+  broadcastShowDeleted(showId: string, showName: string) {
+    // Remove participants from the deleted show
+    if (this.participantsByShow.has(showId)) {
+      this.participantsByShow.delete(showId);
+    }
+
+    // Clear showId from socket metadata for users in deleted show
+    for (const [socketId, meta] of this.socketMeta.entries()) {
+      if (meta.showId === showId) {
+        this.socketMeta.set(socketId, { ...meta, showId: undefined });
+      }
+    }
+
+    // Broadcast to all connected clients
+    this.server.emit("showDeleted", {
+      showId,
+      showName,
+      message: `Show "${showName}" has been deleted`,
+    });
+
+    // Update admin view
+    this.emitAdminActiveUsers();
+  }
 }

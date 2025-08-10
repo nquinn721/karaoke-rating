@@ -541,6 +541,9 @@ export class ShowsService {
       // Delete the show
       await this.showRepository.delete(numericId);
 
+      // Broadcast show deletion to all connected clients
+      await this.chatGateway.broadcastShowDeleted(show.id.toString(), show.name);
+
       return {
         success: true,
         message: `Show "${show.name}" and ${show.ratings?.length || 0} associated ratings deleted successfully`,
