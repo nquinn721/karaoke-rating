@@ -101,16 +101,24 @@ const AdminPage: React.FC = observer(() => {
     if (!showToDelete) return;
 
     try {
-      // Since there's no delete method in ShowsStore, we'll use a simple approach
-      // In a real app, you'd want to implement this in the backend and store
-      console.log(`Deleting show: ${showToDelete.name} (${showToDelete.id})`);
+      // Use the new delete method from ShowsStore
+      const result = await showsStore.deleteShow(showToDelete.id);
 
-      // For now, we'll just close the dialog and refresh the shows
+      if (result.success) {
+        console.log(`Successfully deleted show: ${showToDelete.name}`);
+        // Show was already removed from the store, so no need to refresh
+      } else {
+        console.error(`Failed to delete show: ${result.message}`);
+        // You could show a toast notification here
+      }
+
       setDeleteDialogOpen(false);
       setShowToDelete(null);
-      await showsStore.fetchShows(); // Refresh the list
     } catch (error) {
       console.error("Failed to delete show:", error);
+      // You could show a toast notification here
+      setDeleteDialogOpen(false);
+      setShowToDelete(null);
     }
   };
 

@@ -35,6 +35,7 @@ export class ShowsStore {
       nextPerformance: action,
       removeQueueBySinger: action, // <-- Add action for removing queue by singer
       removeQueueItem: action, // <-- Add action for removing a specific queue item
+      deleteShow: action, // <-- Add action for deleting a show
     });
   }
 
@@ -355,6 +356,53 @@ export class ShowsStore {
         }
       });
       return this.currentShow;
+    }
+  }
+
+  async deleteShow(
+    showId: string
+  ): Promise<{ success: boolean; message: string }> {
+    this.loading = true;
+    this.error = null;
+
+    try {
+      const result = await this.baseAPI.delete<{
+        success: boolean;
+        message: string;
+      }>(`/api/shows/admin/${showId}`, {
+        headers: {
+          "x-admin-key":
+            process.env.REACT_APP_ADMIN_KEY || "karaoke-admin-2024",
+        },
+      });
+
+      if (result.success) {
+        runInAction(() => {
+          // Remove the show from the local shows array
+          this.shows = this.shows.filter((show) => show.id !== showId);
+
+          // Clear current show if it's the one being deleted
+          if (this.currentShow && this.currentShow.id === showId) {
+            this.currentShow = null;
+          }
+
+          this.loading = false;
+        });
+      } else {
+        runInAction(() => {
+          this.error = result.message || "Failed to delete show";
+          this.loading = false;
+        });
+      }
+
+      return result;
+    } catch (error) {
+      runInAction(() => {
+        this.error =
+          error instanceof Error ? error.message : "Failed to delete show";
+        this.loading = false;
+      });
+      throw error;
     }
   }
 

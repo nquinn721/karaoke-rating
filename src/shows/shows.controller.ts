@@ -6,7 +6,9 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from "@nestjs/common";
+import { AdminGuard } from "../auth/admin.guard";
 import {
   CreateShowDto,
   JoinShowDto,
@@ -102,21 +104,25 @@ export class ShowsController {
   }
 
   @Post("admin/invalidate-all")
+  @UseGuards(AdminGuard)
   async invalidateAllShows(): Promise<{ affected: number }> {
     return this.showsService.invalidateAllShows();
   }
 
   @Get("admin/all")
+  @UseGuards(AdminGuard)
   async getAllShowsIncludingInvalid(): Promise<Show[]> {
     return this.showsService.getAllShowsIncludingInvalid();
   }
 
   @Delete("admin/delete-all")
+  @UseGuards(AdminGuard)
   async deleteAllShows(): Promise<{ affected: number }> {
     return this.showsService.deleteAllShows();
   }
 
-  @Delete(":id")
+  @Delete("admin/:id")
+  @UseGuards(AdminGuard)
   async deleteShow(
     @Param("id") id: string
   ): Promise<{ success: boolean; message: string }> {
