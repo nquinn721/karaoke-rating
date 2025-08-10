@@ -72,7 +72,13 @@ const FeedbackModal: React.FC<FeedbackModalProps> = observer(
     };
 
     return (
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth sx={dialogStyles}>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth="sm"
+        fullWidth
+        sx={dialogStyles}
+      >
         <DialogTitle>
           <Typography variant="h6" component="div" color="primary">
             Send Feedback

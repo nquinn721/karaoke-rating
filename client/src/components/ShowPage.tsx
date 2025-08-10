@@ -537,7 +537,7 @@ const ShowPage: React.FC = observer(() => {
           {/* Clean chat container with mobile keyboard handling */}
           <Paper
             sx={{
-              height: { xs: "calc(100vh - 280px)", sm: "450px" },
+              height: { xs: "calc(100vh - 280px)", sm: "410px" },
               mb: 2,
               overflow: "hidden",
               display: "flex",
@@ -804,7 +804,11 @@ const ShowPage: React.FC = observer(() => {
       {activeTab === 2 && <RatingsTab />}
 
       {/* Leave confirmation dialog */}
-      <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)} sx={dialogStyles}>
+      <Dialog
+        open={leaveOpen}
+        onClose={() => setLeaveOpen(false)}
+        sx={dialogStyles}
+      >
         <DialogTitle>Leave this show?</DialogTitle>
         <DialogContent>
           Leaving will remove any of your queued songs.
