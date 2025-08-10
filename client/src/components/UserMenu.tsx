@@ -3,7 +3,7 @@ import {
   KeyboardArrowDown as ArrowDropDownIcon,
   Feedback as FeedbackIcon,
   History as HistoryIcon,
-  Person as PersonIcon,
+  Logout as LogoutIcon,
   Settings as SettingsIcon,
 } from "@mui/icons-material";
 import {
@@ -25,11 +25,10 @@ import FeedbackModal from "./FeedbackModal";
 
 interface UserMenuProps {
   getUserColor: (username: string) => string;
-  onUsernameChange?: () => void;
 }
 
 const UserMenu: React.FC<UserMenuProps> = observer(
-  ({ getUserColor, onUsernameChange }) => {
+  ({ getUserColor }) => {
     const { userStore } = rootStore;
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -43,11 +42,11 @@ const UserMenu: React.FC<UserMenuProps> = observer(
       setAnchorEl(null);
     };
 
-    const handleUsernameClick = () => {
-      if (onUsernameChange) {
-        onUsernameChange();
-      }
+    const handleLogout = () => {
+      // Clear user data and redirect to home
+      userStore.clearUsername();
       handleClose();
+      navigate("/");
     };
 
     return (
@@ -137,15 +136,6 @@ const UserMenu: React.FC<UserMenuProps> = observer(
 
           <Divider />
 
-          {onUsernameChange && (
-            <MenuItem onClick={handleUsernameClick}>
-              <ListItemIcon>
-                <PersonIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Change Username</ListItemText>
-            </MenuItem>
-          )}
-
           <MenuItem
             onClick={() => {
               handleClose();
@@ -190,6 +180,15 @@ const UserMenu: React.FC<UserMenuProps> = observer(
               <SettingsIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Settings</ListItemText>
+          </MenuItem>
+
+          <Divider />
+
+          <MenuItem onClick={handleLogout}>
+            <ListItemIcon>
+              <LogoutIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Logout</ListItemText>
           </MenuItem>
         </Menu>
 

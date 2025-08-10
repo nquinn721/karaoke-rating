@@ -237,13 +237,7 @@ const HistoryPage: React.FC = observer(() => {
             My History
           </Typography>
         </Box>
-        <UserMenu
-          getUserColor={getUserColor}
-          onUsernameChange={() => {
-            // Navigate to home since username change modal is handled there
-            navigate("/");
-          }}
-        />
+        <UserMenu getUserColor={getUserColor} />
       </Box>
 
       {/* Stats */}

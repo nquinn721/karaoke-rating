@@ -174,12 +174,7 @@ const HomePage: React.FC = observer(() => {
         >
           Karaoke Shows
         </Typography>
-        <UserMenu
-          getUserColor={getUserColor}
-          onUsernameChange={() => {
-            setChangeUsernameModalOpen(true);
-          }}
-        />
+        <UserMenu getUserColor={getUserColor} />
       </Box>
 
       {/* Etched Microphone Background - shows when no shows exist */}
