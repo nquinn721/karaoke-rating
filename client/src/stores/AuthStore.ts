@@ -1,4 +1,4 @@
-import { makeAutoObservable } from "mobx";
+import { action, makeAutoObservable, runInAction } from "mobx";
 
 export interface User {
   id: number;
@@ -36,6 +36,7 @@ export class AuthStore {
     await new Promise((r) => setTimeout(r, 0));
   }
 
+  @action
   private async loadFromStorage() {
     this.isInitializing = true;
     const token = localStorage.getItem("auth_token");
@@ -52,8 +53,11 @@ export class AuthStore {
         console.warn("Failed to load saved auth data:", error);
         this.clearAuth();
       }
+    } else {
+      runInAction(() => {
+        this.isInitializing = false;
+      });
     }
-    this.isInitializing = false;
   }
 
   private saveToStorage() {
@@ -163,7 +167,9 @@ export class AuthStore {
       this.clearAuth();
       return false;
     } finally {
-      this.isInitializing = false;
+      runInAction(() => {
+        this.isInitializing = false;
+      });
     }
   }
 

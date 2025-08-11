@@ -45,6 +45,7 @@ export class FeedbackStore extends BaseAPIStore {
       submitFeedback: action,
       fetchUserFeedback: action,
       fetchAllFeedback: action,
+      deleteFeedback: action,
     });
   }
 
@@ -93,6 +94,17 @@ export class FeedbackStore extends BaseAPIStore {
       throw error;
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  async deleteFeedback(feedbackId: string): Promise<void> {
+    try {
+      await this.delete(`/api/feedback/${feedbackId}`);
+      // Remove from local list
+      this.feedbackList = this.feedbackList.filter((f) => f.id !== feedbackId);
+    } catch (error) {
+      console.error("Error deleting feedback:", error);
+      throw error;
     }
   }
 }

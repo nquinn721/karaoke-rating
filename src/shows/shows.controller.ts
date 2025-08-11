@@ -57,11 +57,7 @@ export class ShowsController {
     @Param("id") id: string,
     @Body() body: UpdateCurrentPerformerDto
   ): Promise<Show | undefined> {
-    return this.showsService.updateCurrentPerformer(
-      id,
-      body.singer,
-      body.song
-    );
+    return this.showsService.updateCurrentPerformer(id, body.singer, body.song);
   }
 
   @Post("rate")
@@ -72,6 +68,14 @@ export class ShowsController {
   @Get(":id/ratings")
   async getShowRatings(@Param("id") id: string): Promise<Rating[]> {
     return this.showsService.getShowRatings(id);
+  }
+
+  @Get(":id/has-rated/:username")
+  async hasUserRatedCurrentPerformance(
+    @Param("id") id: string,
+    @Param("username") username: string
+  ): Promise<{ hasRated: boolean; performer?: string; song?: string }> {
+    return this.showsService.hasUserRatedCurrentPerformance(id, username);
   }
 
   @Post(":id/queue")

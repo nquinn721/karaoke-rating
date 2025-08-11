@@ -37,7 +37,7 @@ import { rootStore } from "../stores/RootStore";
 
 const AdminPage: React.FC = observer(() => {
   const navigate = useNavigate();
-  const { showsStore, chatStore } = rootStore;
+  const { showsStore, chatStore, feedbackStore } = rootStore;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newShowName, setNewShowName] = useState("");
   const newShowVenue: "karafun" | "excess" | "dj steve" = "karafun";
@@ -46,6 +46,9 @@ const AdminPage: React.FC = observer(() => {
     id: string;
     name: string;
   } | null>(null);
+  const [deleteFeedbackId, setDeleteFeedbackId] = useState<string | null>(null);
+  const [feedbackDeleteDialogOpen, setFeedbackDeleteDialogOpen] =
+    useState(false);
   const { dialogStyles } = useKeyboardAvoidance();
   const [realTimeStats, setRealTimeStats] = useState({
     totalUsers: 0,
@@ -55,7 +58,8 @@ const AdminPage: React.FC = observer(() => {
 
   useEffect(() => {
     showsStore.fetchShows();
-  }, [showsStore]);
+    feedbackStore.fetchAllFeedback();
+  }, [showsStore, feedbackStore]);
 
   // Update real-time stats using socket data
   useEffect(() => {
@@ -124,6 +128,20 @@ const AdminPage: React.FC = observer(() => {
 
   const getShowParticipants = (showId: string) => {
     return chatStore.participantsByShow.get(showId) || [];
+  };
+
+  const handleDeleteFeedback = async () => {
+    if (!deleteFeedbackId) return;
+
+    try {
+      await feedbackStore.deleteFeedback(deleteFeedbackId);
+      console.log("Successfully deleted feedback");
+    } catch (error) {
+      console.error("Failed to delete feedback:", error);
+    }
+
+    setFeedbackDeleteDialogOpen(false);
+    setDeleteFeedbackId(null);
   };
 
   const StatCard = ({
@@ -496,6 +514,130 @@ const AdminPage: React.FC = observer(() => {
         </TableContainer>
       </Paper>
 
+      {/* Feedback Management */}
+      <Paper
+        sx={{
+          mt: 4,
+          p: 0,
+          background: "rgba(20, 20, 20, 0.8)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 3,
+          overflow: "hidden",
+        }}
+      >
+        <Box
+          sx={{
+            p: 3,
+            borderBottom: "1px solid rgba(255,255,255,0.1)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            User Feedback
+          </Typography>
+        </Box>
+
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ color: "text.secondary", fontWeight: 600 }}>
+                  User
+                </TableCell>
+                <TableCell sx={{ color: "text.secondary", fontWeight: 600 }}>
+                  Type
+                </TableCell>
+                <TableCell sx={{ color: "text.secondary", fontWeight: 600 }}>
+                  Subject
+                </TableCell>
+                <TableCell sx={{ color: "text.secondary", fontWeight: 600 }}>
+                  Status
+                </TableCell>
+                <TableCell sx={{ color: "text.secondary", fontWeight: 600 }}>
+                  Date
+                </TableCell>
+                <TableCell sx={{ color: "text.secondary", fontWeight: 600 }}>
+                  Actions
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {feedbackStore.feedbackList.map((feedback) => (
+                <TableRow key={feedback.id}>
+                  <TableCell>{feedback.username}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={feedback.type}
+                      sx={{
+                        bgcolor:
+                          feedback.type === "bug"
+                            ? "#f44336"
+                            : feedback.type === "feature"
+                              ? "#2196f3"
+                              : feedback.type === "improvement"
+                                ? "#ff9800"
+                                : "#4caf50",
+                        color: "white",
+                        fontSize: "0.75rem",
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>{feedback.subject}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={feedback.status}
+                      variant={
+                        feedback.status === "resolved" ? "filled" : "outlined"
+                      }
+                      color={
+                        feedback.status === "resolved" ? "success" : "default"
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {feedback.createdAt.toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setDeleteFeedbackId(feedback.id);
+                        setFeedbackDeleteDialogOpen(true);
+                      }}
+                      sx={{
+                        color: "error.main",
+                        "&:hover": {
+                          bgcolor: "rgba(244, 67, 54, 0.1)",
+                        },
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {feedbackStore.feedbackList.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} sx={{ textAlign: "center", py: 4 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      No feedback submitted yet.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
       {/* Create Show Dialog */}
       <Dialog
         open={dialogOpen}
@@ -611,6 +753,60 @@ const AdminPage: React.FC = observer(() => {
             }}
           >
             Delete Show
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Feedback Confirmation Dialog */}
+      <Dialog
+        open={feedbackDeleteDialogOpen}
+        onClose={() => {
+          setFeedbackDeleteDialogOpen(false);
+          setDeleteFeedbackId(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: "rgba(30,30,30,0.95)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 3,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 600 }}>Delete Feedback</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this feedback?
+          </Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button
+            onClick={() => {
+              setFeedbackDeleteDialogOpen(false);
+              setDeleteFeedbackId(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteFeedback}
+            sx={{
+              borderRadius: 2,
+              "&:hover": {
+                transform: "translateY(-1px)",
+                boxShadow: "0 4px 12px rgba(244, 67, 54, 0.3)",
+              },
+              transition: "all 0.2s ease",
+            }}
+          >
+            Delete Feedback
           </Button>
         </DialogActions>
       </Dialog>

@@ -315,6 +315,10 @@ export class ShowsService {
       });
       show.currentSingerId = user?.id;
       show.currentSong = next.song;
+    } else {
+      // No next performer - clear current performer
+      show.currentSingerId = null;
+      show.currentSong = null;
     }
 
     show.queue = queue;
@@ -326,13 +330,12 @@ export class ShowsService {
       queue: show.queue,
     });
 
-    if (next) {
-      this.chatGateway.server.to(showId).emit("currentPerformerChanged", {
-        showId,
-        singer: next.singer,
-        song: next.song,
-      });
-    }
+    // Always emit currentPerformerChanged - either with new performer or cleared (null)
+    this.chatGateway.server.to(showId).emit("currentPerformerChanged", {
+      showId,
+      singer: next?.singer || null,
+      song: next?.song || null,
+    });
 
     const allShows = await this.getAllShows();
     this.chatGateway.server.emit("showsUpdated", allShows);
@@ -377,10 +380,10 @@ export class ShowsService {
     let savedRating: Rating;
 
     if (existingRating) {
-      // Update the existing rating
-      existingRating.score = rateDto.rating;
-      existingRating.comment = rateDto.comment || "";
-      savedRating = await this.ratingRepository.save(existingRating);
+      // Prevent rating updates - user can only rate once per performance
+      throw new Error(
+        `You have already rated this performance. Ratings cannot be updated.`
+      );
     } else {
       // Create a new rating
       const rating = this.ratingRepository.create({
@@ -581,5 +584,46 @@ export class ShowsService {
       console.error("Error deleting all shows:", error);
       return { affected: 0 };
     }
+  }
+
+  async hasUserRatedCurrentPerformance(
+    showId: string,
+    username: string
+  ): Promise<{ hasRated: boolean; performer?: string; song?: string }> {
+    const show = await this.showRepository.findOne({
+      where: { id: parseInt(showId) },
+    });
+
+    if (!show || !show.currentSingerId) {
+      return { hasRated: false };
+    }
+
+    // Find the user by username
+    const user = await this.userRepository.findOne({
+      where: { username },
+    });
+
+    if (!user) {
+      return { hasRated: false };
+    }
+
+    // Get current performer info
+    const currentPerformer = await this.getUsernameById(show.currentSingerId);
+
+    // Check if user has already rated this specific performance
+    const existingRating = await this.ratingRepository.findOne({
+      where: {
+        userId: user.id,
+        performerId: show.currentSingerId,
+        songTitle: show.currentSong,
+        showId: parseInt(showId),
+      },
+    });
+
+    return {
+      hasRated: !!existingRating,
+      performer: currentPerformer,
+      song: show.currentSong || undefined,
+    };
   }
 }

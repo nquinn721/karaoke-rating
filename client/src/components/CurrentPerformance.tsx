@@ -26,16 +26,17 @@ import {
   Typography,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useAutocomplete } from "../hooks/useAutocomplete";
 import { rootStore } from "../stores/RootStore";
 
 interface CurrentPerformanceProps {
   showId: string;
+  hasUserRated?: boolean;
 }
 
 const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
-  ({ showId }) => {
+  ({ showId, hasUserRated = false }) => {
     const { showsStore, chatStore, userStore } = rootStore;
 
     const [queueSinger, setQueueSinger] = useState(userStore.username || "");
@@ -53,24 +54,34 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
 
     // Get current performer info to determine if user has an active rating session
     const currentPerformer = useMemo(() => {
-      const live = showId ? chatStore.currentPerformerByShow.get(showId) : undefined;
+      const live = showId
+        ? chatStore.currentPerformerByShow.get(showId)
+        : undefined;
       return {
         singer: live?.singer ?? show?.currentSinger,
         song: live?.song ?? show?.currentSong,
       } as { singer?: string; song?: string };
     }, [
       showId,
-      chatStore.currentPerformerByShow,
+      // Use the specific entry for this showId instead of the entire map
+      showId ? chatStore.currentPerformerByShow.get(showId) : undefined,
       show?.currentSinger,
       show?.currentSong,
     ]);
 
     // Auto-manage accordion state based on rating session
-    const hasActiveRatingSession = currentPerformer.singer && currentPerformer.singer !== userStore.username;
-    const [manuallyExpanded, setManuallyExpanded] = useState<boolean | null>(null);
-    
+    const hasActiveRatingSession =
+      currentPerformer.singer &&
+      currentPerformer.singer !== userStore.username &&
+      !hasUserRated; // Only consider it an active session if user hasn't rated yet
+    const [manuallyExpanded, setManuallyExpanded] = useState<boolean | null>(
+      null
+    );
+
     // Determine accordion state: closed if user has rating session, otherwise use manual state or default open
-    const addSingerExpanded = hasActiveRatingSession ? false : (manuallyExpanded ?? true);
+    const addSingerExpanded = hasActiveRatingSession
+      ? false
+      : (manuallyExpanded ?? true);
 
     const queue = useMemo(() => {
       const wsQueue = chatStore.queueByShow.get(showId);
@@ -86,7 +97,10 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
     });
 
     // Manual accordion control (overrides auto behavior when user clicks)
-    const handleAccordionChange = (_: React.SyntheticEvent, isExpanded: boolean) => {
+    const handleAccordionChange = (
+      _: React.SyntheticEvent,
+      isExpanded: boolean
+    ) => {
       setManuallyExpanded(isExpanded);
     };
 
@@ -136,7 +150,7 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
     return (
       <>
         <Accordion
-          expanded={addSingerExpanded} 
+          expanded={addSingerExpanded}
           onChange={handleAccordionChange}
           sx={{
             mb: 3,
@@ -171,19 +185,21 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
             >
               1. Add Singer
             </Typography>
-            
+
             {/* Singer Selection Row */}
-            <Box sx={{ 
-              display: "flex", 
-              gap: 1, 
-              mb: 2, 
-              flexDirection: { xs: "row", sm: "row" },
-              alignItems: { xs: "center", sm: "flex-start" }
-            }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                mb: 2,
+                flexDirection: { xs: "row", sm: "row" },
+                alignItems: { xs: "center", sm: "flex-start" },
+              }}
+            >
               {participants.length > 0 ? (
-                <FormControl 
-                  size="small" 
-                  sx={{ 
+                <FormControl
+                  size="small"
+                  sx={{
                     flex: 1,
                   }}
                 >
@@ -216,9 +232,9 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                 size="small"
                 onClick={() => setQueueSinger(userStore.username)}
                 disabled={!userStore.username}
-                sx={{ 
+                sx={{
                   flexShrink: 0,
-                  minWidth: "60px"
+                  minWidth: "60px",
                 }}
               >
                 Me
@@ -226,13 +242,15 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
             </Box>
 
             {/* Song Selection Row */}
-            <Box sx={{ 
-              display: "flex", 
-              gap: 1, 
-              mb: 3,
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "stretch", sm: "flex-end" }
-            }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                mb: 3,
+                flexDirection: { xs: "column", sm: "row" },
+                alignItems: { xs: "stretch", sm: "flex-end" },
+              }}
+            >
               <Autocomplete
                 fullWidth
                 freeSolo
@@ -278,15 +296,15 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                   />
                 )}
               />
-              
+
               <Button
                 variant="contained"
                 onClick={handleAddToQueue}
                 disabled={!queueSinger.trim() || !queueSong.trim()}
-                sx={{ 
+                sx={{
                   flexShrink: 0,
                   minWidth: { xs: "100%", sm: "120px" },
-                  height: "40px" // Match input height
+                  height: "40px", // Match input height
                 }}
               >
                 Add to Queue
@@ -299,13 +317,20 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                 sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
               >
                 <QueueMusicIcon fontSize="small" />
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, opacity: 0.8 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: 700, opacity: 0.8 }}
+                >
                   2. Queue
                 </Typography>
               </Box>
 
               {!queue || queue.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ textAlign: "center", py: 2 }}
+                >
                   No one in queue
                 </Typography>
               ) : (
@@ -320,19 +345,19 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                     <ListItem
                       key={`${item.singer}-${item.song}-${idx}`}
                       divider={idx < queue.length - 1}
-                      sx={{ 
+                      sx={{
                         pr: { xs: 1, sm: 1 },
                         flexDirection: { xs: "column", sm: "row" },
                         alignItems: { xs: "flex-start", sm: "center" },
                         py: { xs: 2, sm: 1 },
-                        gap: { xs: 1, sm: 0 }
+                        gap: { xs: 1, sm: 0 },
                       }}
                     >
                       <ListItemText
-                        sx={{ 
+                        sx={{
                           flex: 1,
                           mb: { xs: 1, sm: 0 },
-                          mr: { xs: 0, sm: 2 }
+                          mr: { xs: 0, sm: 2 },
                         }}
                         primary={
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -340,38 +365,43 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                           </Typography>
                         }
                         secondary={
-                          <Typography 
-                            variant="caption" 
+                          <Typography
+                            variant="caption"
                             color="text.secondary"
-                            sx={{ 
+                            sx={{
                               display: "block",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: { xs: "normal", sm: "nowrap" },
-                              maxWidth: { xs: "none", sm: "200px" }
+                              maxWidth: { xs: "none", sm: "200px" },
                             }}
                           >
                             {item.song}
                           </Typography>
                         }
                       />
-                      
+
                       <Box
                         sx={{
                           display: "flex",
                           gap: 1,
                           flexDirection: { xs: "row", sm: "row" },
                           width: { xs: "100%", sm: "auto" },
-                          justifyContent: { xs: "space-between", sm: "flex-end" }
+                          justifyContent: {
+                            xs: "space-between",
+                            sm: "flex-end",
+                          },
                         }}
                       >
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={() => handleSetCurrent(item.singer, item.song)}
-                          sx={{ 
+                          onClick={() =>
+                            handleSetCurrent(item.singer, item.song)
+                          }
+                          sx={{
                             flex: { xs: 1, sm: "0 0 auto" },
-                            fontSize: { xs: "0.75rem", sm: "0.875rem" }
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
                           }}
                         >
                           Set Current
@@ -381,9 +411,9 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                             color="error"
                             size="small"
                             onClick={() => requestRemove(idx)}
-                            sx={{ 
+                            sx={{
                               flexShrink: 0,
-                              minWidth: { xs: "36px", sm: "auto" }
+                              minWidth: { xs: "36px", sm: "auto" },
                             }}
                           >
                             <DeleteOutlineIcon fontSize="small" />
@@ -404,6 +434,41 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
               >
                 3. Next
               </Typography>
+
+              {/* Current Singer Display */}
+              {currentPerformer.singer && (
+                <Box
+                  sx={{
+                    p: 2,
+                    mb: 2,
+                    backgroundColor: "rgba(255, 215, 0, 0.1)",
+                    border: "1px solid rgba(255, 215, 0, 0.3)",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#ffd700", fontWeight: 600, display: "block" }}
+                  >
+                    CURRENTLY SINGING
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, color: "text.primary" }}
+                  >
+                    {currentPerformer.singer}
+                  </Typography>
+                  {currentPerformer.song && (
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      "{currentPerformer.song}"
+                    </Typography>
+                  )}
+                </Box>
+              )}
+
               <Button
                 fullWidth
                 variant="contained"

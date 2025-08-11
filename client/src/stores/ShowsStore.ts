@@ -401,6 +401,84 @@ export class ShowsStore {
     }
   }
 
+  async hasUserRatedCurrentPerformance(
+    showId: string,
+    username: string
+  ): Promise<{ hasRated: boolean; performer?: string; song?: string }> {
+    try {
+      const response = await this.baseAPI.get<{
+        hasRated: boolean;
+        performer?: string;
+        song?: string;
+      }>(`/api/shows/${showId}/has-rated/${encodeURIComponent(username)}`);
+      return response;
+    } catch (error) {
+      console.error("Error checking if user has rated:", error);
+      return { hasRated: false };
+    }
+  }
+
+  async getUserHistory(username: string): Promise<any[]> {
+    try {
+      const response = await this.baseAPI.get<{
+        success: boolean;
+        history: {
+          ratingsGiven: any[];
+          ratingsReceived: any[];
+          showsAttended: any[];
+          stats: any;
+        };
+      }>(`/api/users/${encodeURIComponent(username)}/history`);
+
+      if (!response?.success || !response.history) {
+        return [];
+      }
+
+      // Transform the API response to match the frontend's expected format
+      const { ratingsGiven = [], ratingsReceived = [] } = response.history;
+
+      // Combine ratings given and received into a single array with normalized structure
+      const combinedHistory: any[] = [];
+
+      // Add ratings given by this user
+      ratingsGiven.forEach((rating: any) => {
+        combinedHistory.push({
+          id: rating.id,
+          rating: parseFloat(rating.score),
+          comment: rating.comment || "",
+          createdAt: rating.createdAt,
+          singer: rating.performer?.username || "Unknown",
+          song: rating.songTitle || "Unknown Song",
+          showName: rating.show?.name || "Unknown Show",
+          ratedBy: username, // This user gave this rating
+        });
+      });
+
+      // Add ratings received by this user
+      ratingsReceived.forEach((rating: any) => {
+        combinedHistory.push({
+          id: rating.id + 100000, // Offset to avoid ID conflicts
+          rating: parseFloat(rating.score),
+          comment: rating.comment || "",
+          createdAt: rating.createdAt,
+          singer: username, // This user received this rating
+          song: rating.songTitle || "Unknown Song",
+          showName: rating.show?.name || "Unknown Show",
+          ratedBy: rating.rater?.username || "Unknown",
+        });
+      });
+
+      console.log(
+        `Fetched and transformed history for ${username}:`,
+        combinedHistory
+      );
+      return combinedHistory;
+    } catch (error) {
+      console.error("Error fetching user history:", error);
+      return [];
+    }
+  }
+
   clearCurrentShow() {
     this.currentShow = null;
   }

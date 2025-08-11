@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Put, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+} from "@nestjs/common";
 import { Feedback } from "./entities/feedback.entity";
 import {
   CreateFeedbackDto,
@@ -30,5 +39,13 @@ export class FeedbackController {
     @Body() updateDto: UpdateFeedbackStatusDto
   ): Promise<Feedback> {
     return this.feedbackService.updateFeedbackStatus(updateDto);
+  }
+
+  @Delete(":id")
+  async deleteFeedback(
+    @Param("id") id: string
+  ): Promise<{ success: boolean; message: string }> {
+    await this.feedbackService.deleteFeedback(id);
+    return { success: true, message: "Feedback deleted successfully" };
   }
 }

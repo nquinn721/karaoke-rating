@@ -1,11 +1,5 @@
+import { Home as HomeIcon } from "@mui/icons-material";
 import {
-  ExpandMore as ExpandMoreIcon,
-  Home as HomeIcon,
-} from "@mui/icons-material";
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Avatar,
   Box,
   Card,
@@ -128,30 +122,52 @@ const HistoryPage: React.FC = observer(() => {
 
   const formatDateTime = (d: string | Date) => new Date(d).toLocaleString();
 
-  // Group ratings by show
-  const groupRatingsByShow = (
-    ratings: (RatingGivenItem | RatingReceivedItem)[]
+  // Sort ratings by most recent first
+  const sortRatingsByDate = <T extends { createdAt: string | Date }>(
+    ratings: T[]
   ) => {
-    const grouped: {
+    return ratings.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  };
+
+  // Group ratings by show
+  const groupRatingsByShow = () => {
+    const showGroups: {
       [showId: string]: {
         show: ShowSummary;
-        ratings: (RatingGivenItem | RatingReceivedItem)[];
+        ratingsReceived: RatingReceivedItem[];
+        ratingsGiven: RatingGivenItem[];
       };
     } = {};
 
-    ratings.forEach((rating) => {
-      const showId = rating.show.id;
-      if (!grouped[showId]) {
-        grouped[showId] = {
+    // Group ratings received by show
+    ratingsReceived.forEach((rating) => {
+      if (!showGroups[rating.show.id]) {
+        showGroups[rating.show.id] = {
           show: rating.show,
-          ratings: [],
+          ratingsReceived: [],
+          ratingsGiven: [],
         };
       }
-      grouped[showId].ratings.push(rating);
+      showGroups[rating.show.id].ratingsReceived.push(rating);
     });
 
-    // Sort shows by most recent first
-    return Object.values(grouped).sort(
+    // Group ratings given by show
+    ratingsGiven.forEach((rating) => {
+      if (!showGroups[rating.show.id]) {
+        showGroups[rating.show.id] = {
+          show: rating.show,
+          ratingsReceived: [],
+          ratingsGiven: [],
+        };
+      }
+      showGroups[rating.show.id].ratingsGiven.push(rating);
+    });
+
+    // Convert to array and sort by most recent show
+    return Object.values(showGroups).sort(
       (a, b) =>
         new Date(b.show.createdAt).getTime() -
         new Date(a.show.createdAt).getTime()
@@ -188,9 +204,8 @@ const HistoryPage: React.FC = observer(() => {
 
   const { stats, ratingsGiven, ratingsReceived, showsAttended } = history;
 
-  // Combine and group all ratings by show
-  const allRatings = [...ratingsGiven, ...ratingsReceived];
-  const ratingsByShow = groupRatingsByShow(allRatings);
+  // Group ratings by show
+  const groupedRatings = groupRatingsByShow();
 
   return (
     <Box>
@@ -404,171 +419,263 @@ const HistoryPage: React.FC = observer(() => {
           >
             All Ratings
           </Typography>
-          {ratingsByShow.length === 0 ? (
+          {ratingsReceived.length === 0 && ratingsGiven.length === 0 ? (
             <Typography color="text.secondary">No ratings yet.</Typography>
           ) : (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {ratingsByShow.map((showGroup) => (
-                <Accordion
-                  key={showGroup.show.id}
-                  sx={{
-                    background:
-                      "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    backdropFilter: "blur(10px)",
-                    borderRadius: "12px !important",
-                    overflow: "hidden",
-                    transition: "all 0.3s ease",
-                    "&:hover": {
-                      transform: "translateY(-1px)",
-                      boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                    },
-                    "&:before": {
-                      display: "none",
-                    },
-                  }}
-                >
-                  <AccordionSummary
-                    expandIcon={
-                      <ExpandMoreIcon sx={{ color: "text.secondary" }} />
-                    }
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {groupedRatings.map((group) => (
+                <Box key={group.show.id}>
+                  {/* Show Header */}
+                  <Typography
+                    variant="h6"
                     sx={{
-                      borderRadius: "12px",
-                      "&:hover": {
-                        background: "rgba(255,255,255,0.03)",
-                      },
+                      mb: 2,
+                      fontWeight: 600,
+                      background: "linear-gradient(45deg, #6c5ce7, #a29bfe)",
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      color: "transparent",
+                      fontSize: "1.2rem",
                     }}
                   >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 2,
-                        width: "100%",
-                      }}
-                    >
-                      <Typography sx={{ fontWeight: 600 }}>
-                        {showGroup.show.name}
-                      </Typography>
-                      <Chip
-                        label={`${showGroup.ratings.length} ratings`}
-                        size="small"
-                        variant="outlined"
-                      />
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ ml: "auto" }}
-                      >
-                        {showGroup.show.venue} •{" "}
-                        {formatDateTime(showGroup.show.createdAt)}
-                      </Typography>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails
+                    {group.show.name} @ {group.show.venue}
+                  </Typography>
+
+                  <Box
                     sx={{
-                      borderTop: "1px solid rgba(255,255,255,0.05)",
-                      background: "rgba(0,0,0,0.1)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                      ml: 2,
                     }}
                   >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 1.25,
-                      }}
-                    >
-                      {showGroup.ratings.map((r) => (
-                        <Box
-                          key={r.id}
+                    {/* Ratings Received Section */}
+                    {group.ratingsReceived.length > 0 && (
+                      <Box>
+                        <Typography
+                          variant="subtitle1"
                           sx={{
-                            p: 2,
-                            borderRadius: "8px",
+                            mb: 1.5,
+                            fontWeight: 600,
                             background:
-                              "linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
-                            border: "1px solid rgba(255,255,255,0.05)",
-                            transition: "all 0.2s ease",
-                            "&:hover": {
-                              background: "rgba(255,255,255,0.05)",
-                              border: "1px solid rgba(255,255,255,0.1)",
-                            },
+                              "linear-gradient(45deg, #4ecdc4, #26d0ce)",
+                            WebkitBackgroundClip: "text",
+                            backgroundClip: "text",
+                            color: "transparent",
+                            fontSize: "1rem",
                           }}
                         >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
-                            <Avatar
-                              sx={{
-                                width: 32,
-                                height: 32,
-                                background:
-                                  "performer" in r
-                                    ? getUserColor(r.performer.username)
-                                    : getUserColor(r.rater.username),
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                                border: "2px solid rgba(255,255,255,0.1)",
-                              }}
-                            >
-                              {"performer" in r
-                                ? r.performer.username.charAt(0).toUpperCase()
-                                : r.rater.username.charAt(0).toUpperCase()}
-                            </Avatar>
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography sx={{ fontWeight: 600 }} noWrap>
-                                {"performer" in r
-                                  ? `Rated ${r.performer.username}`
-                                  : `Rating from ${r.rater.username}`}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                noWrap
+                          Who Rated Me ({group.ratingsReceived.length})
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1.25,
+                          }}
+                        >
+                          {sortRatingsByDate([...group.ratingsReceived]).map(
+                            (r: RatingReceivedItem) => (
+                              <Box
+                                key={r.id}
+                                sx={{
+                                  p: 2,
+                                  borderRadius: "8px",
+                                  background:
+                                    "linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(78, 205, 196, 0.05) 100%)",
+                                  border: "1px solid rgba(78, 205, 196, 0.2)",
+                                  transition: "all 0.2s ease",
+                                  "&:hover": {
+                                    background: "rgba(78, 205, 196, 0.15)",
+                                    border: "1px solid rgba(78, 205, 196, 0.3)",
+                                    transform: "translateY(-1px)",
+                                  },
+                                }}
                               >
-                                {r.songTitle || "Unknown song"}
-                              </Typography>
-                            </Box>
-                            <Chip
-                              label={`${r.score}/10`}
-                              color={"performer" in r ? "primary" : "secondary"}
-                              size="small"
-                              sx={{
-                                fontWeight: "bold",
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                                background:
-                                  "performer" in r
-                                    ? "linear-gradient(45deg, #ff6b6b, #ff8a80)"
-                                    : "linear-gradient(45deg, #4ecdc4, #26d0ce)",
-                                color: "white",
-                                border: "none",
-                              }}
-                            />
-                          </Box>
-                          {r.comment && (
-                            <Typography
-                              variant="body2"
-                              sx={{ mt: 0.5, ml: 4.5 }}
-                            >
-                              "{r.comment}"
-                            </Typography>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Avatar
+                                    sx={{
+                                      width: 32,
+                                      height: 32,
+                                      background: getUserColor(r.rater.username),
+                                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                                      border: "2px solid rgba(255,255,255,0.1)",
+                                    }}
+                                  >
+                                    {r.rater.username.charAt(0).toUpperCase()}
+                                  </Avatar>
+                                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                                      <Typography sx={{ fontWeight: 600 }} noWrap>
+                                        {r.rater.username}
+                                      </Typography>
+                                      <Chip
+                                        label={`${r.score}/10`}
+                                        size="small"
+                                        sx={{
+                                          fontWeight: "bold",
+                                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                                          background: "linear-gradient(45deg, #4ecdc4, #26d0ce)",
+                                          color: "white",
+                                          border: "none",
+                                          flexShrink: 0,
+                                        }}
+                                      />
+                                    </Box>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ display: "block", mt: 0.5 }}
+                                    >
+                                      {r.songTitle || "Unknown song"}
+                                    </Typography>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ display: "block" }}
+                                    >
+                                      {formatDateTime(r.createdAt)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                                {r.comment && (
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ mt: 1, ml: 4.5 }}
+                                  >
+                                    "{r.comment}"
+                                  </Typography>
+                                )}
+                              </Box>
+                            )
                           )}
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ display: "block", mt: 0.5, ml: 4.5 }}
-                          >
-                            {formatDateTime(r.createdAt)}
-                          </Typography>
-                          <Divider sx={{ mt: 1 }} />
                         </Box>
-                      ))}
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
+                      </Box>
+                    )}
+
+                    {/* Ratings Given Section */}
+                    {group.ratingsGiven.length > 0 && (
+                      <Box>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            mb: 1.5,
+                            fontWeight: 600,
+                            background:
+                              "linear-gradient(45deg, #ff6b6b, #ff8a80)",
+                            WebkitBackgroundClip: "text",
+                            backgroundClip: "text",
+                            color: "transparent",
+                            fontSize: "1rem",
+                          }}
+                        >
+                          Who I Rated ({group.ratingsGiven.length})
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1.25,
+                          }}
+                        >
+                          {sortRatingsByDate([...group.ratingsGiven]).map(
+                            (r: RatingGivenItem) => (
+                              <Box
+                                key={r.id}
+                                sx={{
+                                  p: 2,
+                                  borderRadius: "8px",
+                                  background:
+                                    "linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%)",
+                                  border: "1px solid rgba(255, 107, 107, 0.2)",
+                                  transition: "all 0.2s ease",
+                                  "&:hover": {
+                                    background: "rgba(255, 107, 107, 0.15)",
+                                    border:
+                                      "1px solid rgba(255, 107, 107, 0.3)",
+                                    transform: "translateY(-1px)",
+                                  },
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Avatar
+                                    sx={{
+                                      width: 32,
+                                      height: 32,
+                                      background: getUserColor(r.performer.username),
+                                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                                      border: "2px solid rgba(255,255,255,0.1)",
+                                    }}
+                                  >
+                                    {r.performer.username
+                                      .charAt(0)
+                                      .toUpperCase()}
+                                  </Avatar>
+                                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                                      <Typography sx={{ fontWeight: 600 }} noWrap>
+                                        {r.performer.username}
+                                      </Typography>
+                                      <Chip
+                                        label={`${r.score}/10`}
+                                        size="small"
+                                        sx={{
+                                          fontWeight: "bold",
+                                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                                          background: "linear-gradient(45deg, #ff6b6b, #ff8a80)",
+                                          color: "white",
+                                          border: "none",
+                                          flexShrink: 0,
+                                        }}
+                                      />
+                                    </Box>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ display: "block", mt: 0.5 }}
+                                    >
+                                      {r.songTitle || "Unknown song"}
+                                    </Typography>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ display: "block" }}
+                                    >
+                                      {formatDateTime(r.createdAt)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                                {r.comment && (
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ mt: 1, ml: 4.5 }}
+                                  >
+                                    "{r.comment}"
+                                  </Typography>
+                                )}
+                              </Box>
+                            )
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+                  </Box>
+
+                  {/* Add divider between shows */}
+                  <Divider sx={{ mt: 3, mb: 1, opacity: 0.3 }} />
+                </Box>
               ))}
             </Box>
           )}

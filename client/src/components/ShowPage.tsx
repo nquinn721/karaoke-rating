@@ -58,6 +58,10 @@ const ShowPage: React.FC = observer(() => {
   const prevParticipantsRef = React.useRef<Set<string>>(new Set());
   const initializedRef = React.useRef(false);
 
+  // Track if user has already rated the current performance
+  const [hasUserRated, setHasUserRated] = useState(false);
+  const [checkingRating, setCheckingRating] = useState(false);
+
   // Rating accordion and snackbar state
   const [ratingAccordionExpanded, setRatingAccordionExpanded] = useState(true);
   const [ratingSnackbarOpen, setRatingSnackbarOpen] = useState(false);
@@ -118,7 +122,8 @@ const ShowPage: React.FC = observer(() => {
     } as { singer?: string; song?: string };
   }, [
     id,
-    chatStore.currentPerformerByShow,
+    // Use the specific entry for this id instead of the entire map
+    id ? chatStore.currentPerformerByShow.get(id) : undefined,
     showsStore.currentShow?.currentSinger,
     showsStore.currentShow?.currentSong,
   ]);
@@ -185,6 +190,38 @@ const ShowPage: React.FC = observer(() => {
     return () => window.removeEventListener("resize", handleResize);
   }, [activeTab]);
 
+  // Check if user has already rated the current performance
+  useEffect(() => {
+    const checkUserRating = async () => {
+      if (!id || !currentPerformer.singer || !userStore.username) {
+        setHasUserRated(false);
+        return;
+      }
+
+      setCheckingRating(true);
+      try {
+        const result = await showsStore.hasUserRatedCurrentPerformance(
+          id,
+          userStore.username
+        );
+        setHasUserRated(result.hasRated);
+      } catch (error) {
+        console.error("Error checking if user has rated:", error);
+        setHasUserRated(false);
+      } finally {
+        setCheckingRating(false);
+      }
+    };
+
+    checkUserRating();
+  }, [
+    id,
+    currentPerformer.singer,
+    currentPerformer.song,
+    userStore.username,
+    showsStore,
+  ]);
+
   const handleSubmitRating = async () => {
     if (
       !showsStore.currentShow ||
@@ -213,6 +250,9 @@ const ShowPage: React.FC = observer(() => {
       );
       setRatingSnackbarOpen(true);
       setRatingAccordionExpanded(false);
+
+      // Mark that user has rated this performance
+      setHasUserRated(true);
 
       setRating(5);
       setComment("");
@@ -423,113 +463,144 @@ const ShowPage: React.FC = observer(() => {
       {activeTab === 0 && (
         <Box>
           {/* Current Performance Section */}
-          <CurrentPerformance showId={id || ""} />
+          <CurrentPerformance showId={id || ""} hasUserRated={hasUserRated} />
 
-          {/* Rating Section - only show if there's a current performance AND user is not the performer */}
-          {currentPerformer.singer && 
-           currentPerformer.singer !== userStore.username && (
-            <Accordion
-              expanded={ratingAccordionExpanded}
-              onChange={(_, isExpanded) =>
-                setRatingAccordionExpanded(isExpanded)
-              }
-              sx={{
-                mb: 3,
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 2,
-                "&:before": {
-                  display: "none",
-                },
-                "& .MuiAccordionSummary-root": {
-                  borderRadius: 2,
-                },
-              }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
+          {/* Show message if user has already rated */}
+          {currentPerformer.singer &&
+            currentPerformer.singer !== userStore.username &&
+            hasUserRated && (
+              <Paper
                 sx={{
-                  backgroundColor: "rgba(255,255,255,0.05)",
-                  "&:hover": {
-                    backgroundColor: "rgba(255,255,255,0.08)",
-                  },
+                  p: 2,
+                  mb: 3,
+                  backgroundColor: "rgba(76, 175, 80, 0.1)",
+                  border: "1px solid rgba(76, 175, 80, 0.3)",
+                  borderRadius: 2,
                 }}
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <StarIcon sx={{ color: "#ffd700" }} />
-                  <Typography variant="h6">Rate Performance</Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "text.secondary", ml: 1 }}
-                  >
-                    {currentPerformer.singer} - "{currentPerformer.song}"
+                  <StarIcon sx={{ color: "#4caf50" }} />
+                  <Typography variant="h6" sx={{ color: "#4caf50" }}>
+                    Rating Submitted
                   </Typography>
                 </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box sx={{ mt: 1 }}>
-                  <Typography gutterBottom>Rating: {rating}/10</Typography>
-                  <Slider
-                    value={rating}
-                    onChange={(_, newValue) => setRating(newValue as number)}
-                    min={1}
-                    max={10}
-                    step={1}
-                    marks
-                    valueLabelDisplay="auto"
-                    sx={{
-                      mb: 3,
-                      "& .MuiSlider-thumb": {
-                        backgroundColor: "primary.main",
-                        "&:hover": {
-                          boxShadow: "0 0 0 8px rgba(255,107,107,0.16)",
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", mt: 1 }}
+                >
+                  You have already rated {currentPerformer.singer} - "
+                  {currentPerformer.song}". Ratings cannot be changed once
+                  submitted.
+                </Typography>
+              </Paper>
+            )}
+
+          {/* Rating Section - only show if there's a current performance AND user is not the performer AND user hasn't rated yet */}
+          {currentPerformer.singer &&
+            currentPerformer.singer !== userStore.username &&
+            !hasUserRated && (
+              <Accordion
+                expanded={ratingAccordionExpanded}
+                onChange={(_, isExpanded) =>
+                  setRatingAccordionExpanded(isExpanded)
+                }
+                sx={{
+                  mb: 3,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 2,
+                  "&:before": {
+                    display: "none",
+                  },
+                  "& .MuiAccordionSummary-root": {
+                    borderRadius: 2,
+                  },
+                }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{
+                    backgroundColor: "rgba(255,255,255,0.05)",
+                    "&:hover": {
+                      backgroundColor: "rgba(255,255,255,0.08)",
+                    },
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <StarIcon sx={{ color: "#ffd700" }} />
+                    <Typography variant="h6">Rate Performance</Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary", ml: 1 }}
+                    >
+                      {currentPerformer.singer} - "{currentPerformer.song}"
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Box sx={{ mt: 1 }}>
+                    <Typography gutterBottom>Rating: {rating}/10</Typography>
+                    <Slider
+                      value={rating}
+                      onChange={(_, newValue) => setRating(newValue as number)}
+                      min={1}
+                      max={10}
+                      step={1}
+                      marks
+                      valueLabelDisplay="auto"
+                      sx={{
+                        mb: 3,
+                        "& .MuiSlider-thumb": {
+                          backgroundColor: "primary.main",
+                          "&:hover": {
+                            boxShadow: "0 0 0 8px rgba(255,107,107,0.16)",
+                          },
                         },
-                      },
-                      "& .MuiSlider-track": {
-                        backgroundColor: "primary.main",
-                      },
-                      "& .MuiSlider-rail": {
-                        opacity: 0.3,
-                      },
-                    }}
-                  />
+                        "& .MuiSlider-track": {
+                          backgroundColor: "primary.main",
+                        },
+                        "& .MuiSlider-rail": {
+                          opacity: 0.3,
+                        },
+                      }}
+                    />
 
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label="Comments (optional)"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    sx={{ mb: 2 }}
-                  />
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Comments (optional)"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      sx={{ mb: 2 }}
+                    />
 
-                  <Button
-                    variant="contained"
-                    onClick={handleSubmitRating}
-                    fullWidth
-                    startIcon={<StarIcon />}
-                    sx={{
-                      borderRadius: 2,
-                      py: 1.5,
-                      background:
-                        "linear-gradient(135deg, #ffd700 0%, #ffb300 100%)",
-                      color: "#000",
-                      fontWeight: 600,
-                      "&:hover": {
+                    <Button
+                      variant="contained"
+                      onClick={handleSubmitRating}
+                      fullWidth
+                      startIcon={<StarIcon />}
+                      sx={{
+                        borderRadius: 2,
+                        py: 1.5,
                         background:
-                          "linear-gradient(135deg, #ffb300 0%, #ff8f00 100%)",
-                        transform: "translateY(-2px)",
-                        boxShadow: "0 4px 12px rgba(255, 215, 0, 0.3)",
-                      },
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    Submit Rating
-                  </Button>
-                </Box>
-              </AccordionDetails>
-            </Accordion>
-          )}
+                          "linear-gradient(135deg, #ffd700 0%, #ffb300 100%)",
+                        color: "#000",
+                        fontWeight: 600,
+                        "&:hover": {
+                          background:
+                            "linear-gradient(135deg, #ffb300 0%, #ff8f00 100%)",
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 4px 12px rgba(255, 215, 0, 0.3)",
+                        },
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      Submit Rating
+                    </Button>
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+            )}
         </Box>
       )}
 
