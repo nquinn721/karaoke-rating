@@ -21,7 +21,7 @@ export class AdminGuard implements CanActivate {
     }
 
     const token = authHeader.substring(7); // Remove "Bearer "
-    
+
     // Verify token and get user
     const user = await this.userService.verifyToken(token);
     if (!user) {

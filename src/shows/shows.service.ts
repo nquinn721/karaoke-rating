@@ -257,6 +257,7 @@ export class ShowsService {
     // Inform room subscribers of performer change
     const singerName = await this.getUsernameById(singerId);
     this.chatGateway.server.to(showId).emit("currentPerformerChanged", {
+      showId,
       singer: singerName,
       song,
     });
@@ -318,6 +319,7 @@ export class ShowsService {
 
     if (next) {
       this.chatGateway.server.to(showId).emit("currentPerformerChanged", {
+        showId,
         singer: next.singer,
         song: next.song,
       });

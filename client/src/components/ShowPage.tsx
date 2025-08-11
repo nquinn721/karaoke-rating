@@ -425,8 +425,9 @@ const ShowPage: React.FC = observer(() => {
           {/* Current Performance Section */}
           <CurrentPerformance showId={id || ""} />
 
-          {/* Rating Section - only show if there's a current performance */}
-          {currentPerformer.singer && (
+          {/* Rating Section - only show if there's a current performance AND user is not the performer */}
+          {currentPerformer.singer && 
+           currentPerformer.singer !== userStore.username && (
             <Accordion
               expanded={ratingAccordionExpanded}
               onChange={(_, isExpanded) =>

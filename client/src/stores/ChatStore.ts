@@ -162,19 +162,21 @@ export class ChatStore {
       }) => {
         runInAction(() => {
           // Remove show from live shows list
-          this.liveShows = this.liveShows.filter((show) => show.id.toString() !== showId);
-          
+          this.liveShows = this.liveShows.filter(
+            (show) => show.id.toString() !== showId
+          );
+
           // Clean up show-specific data
           this.participantsByShow.delete(showId);
           this.queueByShow.delete(showId);
           this.currentPerformerByShow.delete(showId);
-          
+
           // If user was in this show, clear current show
           if (this.currentShowId === showId) {
             this.currentShowId = null;
           }
         });
-        
+
         console.log(`Show "${showName}" deleted: ${message}`);
       }
     );
