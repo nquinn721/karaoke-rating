@@ -1,11 +1,13 @@
 import { QueueMusic as QueueMusicIcon } from "@mui/icons-material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Autocomplete,
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -24,7 +26,7 @@ import {
   Typography,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useAutocomplete } from "../hooks/useAutocomplete";
 import { rootStore } from "../stores/RootStore";
 
@@ -49,9 +51,31 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
       wsParticipants.length ? wsParticipants : show?.participants || []
     ).filter(Boolean);
 
-    // Prefer live queue
-    const liveQueue = chatStore.queueByShow.get(showId);
-    const queue = liveQueue ?? ((show as any)?.queue || []);
+    // Get current performer info to determine if user has an active rating session
+    const currentPerformer = useMemo(() => {
+      const live = showId ? chatStore.currentPerformerByShow.get(showId) : undefined;
+      return {
+        singer: live?.singer ?? show?.currentSinger,
+        song: live?.song ?? show?.currentSong,
+      } as { singer?: string; song?: string };
+    }, [
+      showId,
+      chatStore.currentPerformerByShow,
+      show?.currentSinger,
+      show?.currentSong,
+    ]);
+
+    // Auto-manage accordion state based on rating session
+    const hasActiveRatingSession = currentPerformer.singer && currentPerformer.singer !== userStore.username;
+    const [manuallyExpanded, setManuallyExpanded] = useState<boolean | null>(null);
+    
+    // Determine accordion state: closed if user has rating session, otherwise use manual state or default open
+    const addSingerExpanded = hasActiveRatingSession ? false : (manuallyExpanded ?? true);
+
+    const queue = useMemo(() => {
+      const wsQueue = chatStore.queueByShow.get(showId);
+      return wsQueue || show?.queue || [];
+    }, [chatStore.queueByShow, showId, show?.queue]);
 
     const [confirmOpen, setConfirmOpen] = useState<{
       open: boolean;
@@ -60,6 +84,11 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
       open: false,
       index: null,
     });
+
+    // Manual accordion control (overrides auto behavior when user clicks)
+    const handleAccordionChange = (_: React.SyntheticEvent, isExpanded: boolean) => {
+      setManuallyExpanded(isExpanded);
+    };
 
     const requestRemove = (index: number) =>
       setConfirmOpen({ open: true, index });
@@ -106,13 +135,35 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
 
     return (
       <>
-        <Card
+        <Accordion
+          expanded={addSingerExpanded} 
+          onChange={handleAccordionChange}
           sx={{
             mb: 3,
             border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 2,
+            "&:before": {
+              display: "none",
+            },
+            "& .MuiAccordionSummary-root": {
+              borderRadius: 2,
+            },
           }}
         >
-          <CardContent>
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            sx={{
+              backgroundColor: "rgba(255,255,255,0.05)",
+              "&:hover": {
+                backgroundColor: "rgba(255,255,255,0.08)",
+              },
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Queue Management
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
             {/* Step 1: Add Singer */}
             <Typography
               variant="subtitle2"
@@ -126,15 +177,14 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
               display: "flex", 
               gap: 1, 
               mb: 2, 
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "stretch", sm: "flex-start" }
+              flexDirection: { xs: "row", sm: "row" },
+              alignItems: { xs: "center", sm: "flex-start" }
             }}>
               {participants.length > 0 ? (
                 <FormControl 
                   size="small" 
                   sx={{ 
-                    flex: { xs: "1", sm: "0 0 140px" },
-                    mb: { xs: 1, sm: 0 }
+                    flex: 1,
                   }}
                 >
                   <InputLabel id="queue-singer-label">Singer</InputLabel>
@@ -157,10 +207,7 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                   label="Singer"
                   value={queueSinger}
                   onChange={(e) => setQueueSinger(e.target.value)}
-                  sx={{ 
-                    flex: { xs: "1", sm: "0 0 140px" },
-                    mb: { xs: 1, sm: 0 }
-                  }}
+                  sx={{ flex: 1 }}
                 />
               )}
 
@@ -171,9 +218,7 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                 disabled={!userStore.username}
                 sx={{ 
                   flexShrink: 0,
-                  alignSelf: { xs: "center", sm: "flex-start" },
-                  width: { xs: "80px", sm: "60px" },
-                  mb: { xs: 1, sm: 0 }
+                  minWidth: "60px"
                 }}
               >
                 Me
@@ -184,7 +229,7 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
             <Box sx={{ 
               display: "flex", 
               gap: 1, 
-              mb: 2,
+              mb: 3,
               flexDirection: { xs: "column", sm: "row" },
               alignItems: { xs: "stretch", sm: "flex-end" }
             }}>
@@ -240,7 +285,7 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                 disabled={!queueSinger.trim() || !queueSong.trim()}
                 sx={{ 
                   flexShrink: 0,
-                  minWidth: { xs: "100%", sm: "80px" },
+                  minWidth: { xs: "100%", sm: "120px" },
                   height: "40px" // Match input height
                 }}
               >
@@ -249,18 +294,18 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
             </Box>
 
             {/* Step 2: Queue */}
-            <Box sx={{ mt: 1 }}>
+            <Box sx={{ mb: 3 }}>
               <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
+                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
               >
                 <QueueMusicIcon fontSize="small" />
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, opacity: 0.8 }}>
                   2. Queue
                 </Typography>
               </Box>
 
               {!queue || queue.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
                   No one in queue
                 </Typography>
               ) : (
@@ -351,12 +396,11 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
               )}
             </Box>
 
-            {/* Step 3: Current Performance */}
             {/* Step 3: Next */}
-            <Box sx={{ mt: 3 }}>
+            <Box>
               <Typography
                 variant="subtitle2"
-                sx={{ fontWeight: 700, mb: 1, opacity: 0.8 }}
+                sx={{ fontWeight: 700, mb: 2, opacity: 0.8 }}
               >
                 3. Next
               </Typography>
@@ -365,12 +409,13 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                 variant="contained"
                 onClick={handleNext}
                 disabled={!queue || queue.length === 0}
+                size="large"
               >
                 Next
               </Button>
             </Box>
-          </CardContent>
-        </Card>
+          </AccordionDetails>
+        </Accordion>
 
         {/* Remove confirmation */}
         <Dialog open={confirmOpen.open} onClose={cancelRemove}>
