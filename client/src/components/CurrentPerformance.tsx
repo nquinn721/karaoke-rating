@@ -116,14 +116,27 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
             {/* Step 1: Add Singer */}
             <Typography
               variant="subtitle2"
-              sx={{ fontWeight: 700, mb: 1, opacity: 0.8 }}
+              sx={{ fontWeight: 700, mb: 2, opacity: 0.8 }}
             >
               1. Add Singer
             </Typography>
-            {/* Quick add to queue row */}
-            <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
+            
+            {/* Singer Selection Row */}
+            <Box sx={{ 
+              display: "flex", 
+              gap: 1, 
+              mb: 2, 
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "stretch", sm: "flex-start" }
+            }}>
               {participants.length > 0 ? (
-                <FormControl size="small" sx={{ minWidth: 160 }}>
+                <FormControl 
+                  size="small" 
+                  sx={{ 
+                    flex: { xs: "1", sm: "0 0 140px" },
+                    mb: { xs: 1, sm: 0 }
+                  }}
+                >
                   <InputLabel id="queue-singer-label">Singer</InputLabel>
                   <Select
                     labelId="queue-singer-label"
@@ -144,7 +157,10 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                   label="Singer"
                   value={queueSinger}
                   onChange={(e) => setQueueSinger(e.target.value)}
-                  sx={{ minWidth: 160 }}
+                  sx={{ 
+                    flex: { xs: "1", sm: "0 0 140px" },
+                    mb: { xs: 1, sm: 0 }
+                  }}
                 />
               )}
 
@@ -153,11 +169,25 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                 size="small"
                 onClick={() => setQueueSinger(userStore.username)}
                 disabled={!userStore.username}
-                sx={{ flexShrink: 0 }}
+                sx={{ 
+                  flexShrink: 0,
+                  alignSelf: { xs: "center", sm: "flex-start" },
+                  width: { xs: "80px", sm: "60px" },
+                  mb: { xs: 1, sm: 0 }
+                }}
               >
                 Me
               </Button>
+            </Box>
 
+            {/* Song Selection Row */}
+            <Box sx={{ 
+              display: "flex", 
+              gap: 1, 
+              mb: 2,
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "stretch", sm: "flex-end" }
+            }}>
               <Autocomplete
                 fullWidth
                 freeSolo
@@ -183,7 +213,7 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                 }}
                 loading={queueLoading}
                 size="small"
-                sx={{ flex: 1, minWidth: 220 }}
+                sx={{ flex: 1 }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -203,13 +233,18 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                   />
                 )}
               />
+              
               <Button
                 variant="contained"
                 onClick={handleAddToQueue}
                 disabled={!queueSinger.trim() || !queueSong.trim()}
-                sx={{ flexShrink: 0 }}
+                sx={{ 
+                  flexShrink: 0,
+                  minWidth: { xs: "100%", sm: "80px" },
+                  height: "40px" // Match input height
+                }}
               >
-                Add
+                Add to Queue
               </Button>
             </Box>
 
@@ -240,67 +275,76 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                     <ListItem
                       key={`${item.singer}-${item.song}-${idx}`}
                       divider={idx < queue.length - 1}
-                      sx={{ pr: { xs: 12, sm: 18 } }}
-                      secondaryAction={
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                          }}
-                        >
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() =>
-                              handleSetCurrent(item.singer, item.song)
-                            }
-                          >
-                            Set Current
-                          </Button>
-                          <Tooltip title="Remove from queue">
-                            <IconButton
-                              color="error"
-                              size="small"
-                              onClick={() => requestRemove(idx)}
-                            >
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      }
+                      sx={{ 
+                        pr: { xs: 1, sm: 1 },
+                        flexDirection: { xs: "column", sm: "row" },
+                        alignItems: { xs: "flex-start", sm: "center" },
+                        py: { xs: 2, sm: 1 },
+                        gap: { xs: 1, sm: 0 }
+                      }}
                     >
                       <ListItemText
-                        sx={{ mr: "10px" }}
-                        primaryTypographyProps={{ component: "span" }}
-                        secondaryTypographyProps={{ component: "span" }}
+                        sx={{ 
+                          flex: 1,
+                          mb: { xs: 1, sm: 0 },
+                          mr: { xs: 0, sm: 2 }
+                        }}
                         primary={
-                          <>
-                            <Typography
-                              component="span"
-                              variant="subtitle2"
-                              sx={{ fontWeight: 600 }}
-                            >
-                              {item.singer}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              variant="body2"
-                              color="text.secondary"
-                            >
-                              {" "}
-                              •{" "}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              variant="body2"
-                              color="text.secondary"
-                            >
-                              {item.song}
-                            </Typography>
-                          </>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {item.singer}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography 
+                            variant="caption" 
+                            color="text.secondary"
+                            sx={{ 
+                              display: "block",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: { xs: "normal", sm: "nowrap" },
+                              maxWidth: { xs: "none", sm: "200px" }
+                            }}
+                          >
+                            {item.song}
+                          </Typography>
                         }
                       />
+                      
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 1,
+                          flexDirection: { xs: "row", sm: "row" },
+                          width: { xs: "100%", sm: "auto" },
+                          justifyContent: { xs: "space-between", sm: "flex-end" }
+                        }}
+                      >
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleSetCurrent(item.singer, item.song)}
+                          sx={{ 
+                            flex: { xs: 1, sm: "0 0 auto" },
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" }
+                          }}
+                        >
+                          Set Current
+                        </Button>
+                        <Tooltip title="Remove from queue">
+                          <IconButton
+                            color="error"
+                            size="small"
+                            onClick={() => requestRemove(idx)}
+                            sx={{ 
+                              flexShrink: 0,
+                              minWidth: { xs: "36px", sm: "auto" }
+                            }}
+                          >
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </ListItem>
                   ))}
                 </List>
