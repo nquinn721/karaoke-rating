@@ -537,6 +537,29 @@ export class ShowsService {
     return this.getShow(showId);
   }
 
+  async reorderQueue(
+    showId: string,
+    newQueue: QueueItem[]
+  ): Promise<ShowInterface | undefined> {
+    const show = await this.showRepository.findOne({
+      where: { id: parseInt(showId) },
+    });
+
+    if (!show) return undefined;
+
+    // Update the queue with the new order
+    show.queue = newQueue;
+    await this.showRepository.save(show);
+
+    // Notify clients of the queue update
+    this.chatGateway.server.to(showId).emit("queueUpdated", {
+      showId,
+      queue: show.queue,
+    });
+
+    return this.getShow(showId);
+  }
+
   async invalidateAllShows(): Promise<{ affected: number }> {
     const result = await this.showRepository.update(
       { isValid: true }, // Only update currently valid shows

@@ -21,6 +21,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -34,19 +35,22 @@ import { observer } from "mobx-react-lite";
 import React, { useState } from "react";
 import { rootStore } from "../stores/RootStore";
 
-interface QueueItem {
+interface SingerGroup {
   id: string;
   singer: string;
-  song: string;
+  songs: string[];
+  totalSongs: number;
 }
 
-interface SortableQueueItemProps {
-  item: QueueItem;
+interface SortableSingerGroupProps {
+  singerGroup: SingerGroup;
+  position: number;
   getUserColor: (username: string) => string;
 }
 
-const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
-  item,
+const SortableSingerGroup: React.FC<SortableSingerGroupProps> = ({
+  singerGroup,
+  position,
   getUserColor,
 }) => {
   const {
@@ -56,7 +60,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id });
+  } = useSortable({ id: singerGroup.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -98,11 +102,39 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             gap: 2,
             width: "100%",
           }}
         >
+          {/* Position Badge */}
+          <Box
+            sx={{
+              position: "absolute",
+              left: -16,
+              top: 12,
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              background: "linear-gradient(45deg, #6c5ce7, #a29bfe)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                color: "white",
+                fontWeight: "bold",
+                fontSize: "0.7rem",
+              }}
+            >
+              {position}
+            </Typography>
+          </Box>
+
           {/* Drag Handle */}
           <Box
             {...listeners}
@@ -111,6 +143,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
               alignItems: "center",
               color: "text.secondary",
               cursor: "grab",
+              mt: 0.5,
               "&:hover": {
                 color: "primary.main",
               },
@@ -122,14 +155,15 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
           {/* Avatar */}
           <Avatar
             sx={{
-              width: 40,
-              height: 40,
-              background: getUserColor(item.singer),
+              width: 48,
+              height: 48,
+              background: getUserColor(singerGroup.singer),
               boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
               border: "2px solid rgba(255,255,255,0.1)",
+              mt: 0.5,
             }}
           >
-            {item.singer.charAt(0).toUpperCase()}
+            {singerGroup.singer.charAt(0).toUpperCase()}
           </Avatar>
 
           {/* Content */}
@@ -139,33 +173,57 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
-                mb: 0.5,
+                mb: 1,
               }}
             >
               <PersonIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              <Typography variant="body1" sx={{ fontWeight: 600 }} noWrap>
-                {item.singer}
+              <Typography variant="h6" sx={{ fontWeight: 600 }} noWrap>
+                {singerGroup.singer}
               </Typography>
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <MusicNoteIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              <Typography
-                variant="body2"
+              <Chip
+                size="small"
+                label={`${singerGroup.totalSongs} song${singerGroup.totalSongs !== 1 ? 's' : ''}`}
                 sx={{
-                  color: "text.secondary",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  fontSize: "0.7rem",
+                  height: 20,
+                  background: "rgba(78, 205, 196, 0.2)",
+                  color: "#4ecdc4",
                 }}
-              >
-                {item.song}
-              </Typography>
+              />
+            </Box>
+            
+            {/* Songs List */}
+            <Box sx={{ ml: 3 }}>
+              {singerGroup.songs.map((song, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    mb: index < singerGroup.songs.length - 1 ? 0.5 : 0,
+                  }}
+                >
+                  <MusicNoteIcon 
+                    fontSize="small" 
+                    sx={{ 
+                      color: "text.secondary", 
+                      fontSize: "0.9rem" 
+                    }} 
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {song}
+                  </Typography>
+                </Box>
+              ))}
             </Box>
           </Box>
         </Box>
@@ -185,27 +243,39 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
   ({ open, onClose, showId, getUserColor }) => {
     const { showsStore, chatStore } = rootStore;
 
-    // Get current queue
-    const currentQueue = React.useMemo(() => {
+    // Group queue items by singer
+    const singerGroups = React.useMemo(() => {
       const wsQueue = chatStore.queueByShow.get(showId);
       const queue = wsQueue || showsStore.currentShow?.queue || [];
-      return queue.map((item: any, index: number) => ({
-        id: `${item.singer}-${item.song}-${index}`,
-        singer: item.singer,
-        song: item.song,
+      
+      // Group songs by singer
+      const grouped = new Map<string, string[]>();
+      queue.forEach((item: any) => {
+        if (!grouped.has(item.singer)) {
+          grouped.set(item.singer, []);
+        }
+        grouped.get(item.singer)!.push(item.song);
+      });
+
+      // Convert to SingerGroup array
+      return Array.from(grouped.entries()).map(([singer, songs], index) => ({
+        id: `singer-${singer}-${index}`,
+        singer,
+        songs,
+        totalSongs: songs.length,
       }));
     }, [chatStore.queueByShow, showId, showsStore.currentShow?.queue]);
 
-    const [orderedQueue, setOrderedQueue] = useState<QueueItem[]>([]);
+    const [orderedSingers, setOrderedSingers] = useState<SingerGroup[]>([]);
     const [hasChanges, setHasChanges] = useState(false);
 
-    // Initialize ordered queue when modal opens or queue changes
+    // Initialize ordered singers when modal opens or groups change
     React.useEffect(() => {
       if (open) {
-        setOrderedQueue(currentQueue);
+        setOrderedSingers(singerGroups);
         setHasChanges(false);
       }
-    }, [open, currentQueue]);
+    }, [open, singerGroups]);
 
     const sensors = useSensors(
       useSensor(PointerSensor, {
@@ -219,11 +289,11 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
       const { active, over } = event;
 
       if (over && active.id !== over.id) {
-        setOrderedQueue((items) => {
-          const oldIndex = items.findIndex((item) => item.id === active.id);
-          const newIndex = items.findIndex((item) => item.id === over.id);
+        setOrderedSingers((singers) => {
+          const oldIndex = singers.findIndex((singer) => singer.id === active.id);
+          const newIndex = singers.findIndex((singer) => singer.id === over.id);
 
-          const newOrder = arrayMove(items, oldIndex, newIndex);
+          const newOrder = arrayMove(singers, oldIndex, newIndex);
           setHasChanges(true);
           return newOrder;
         });
@@ -232,10 +302,16 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
 
     const handleSave = async () => {
       try {
-        const reorderedQueue = orderedQueue.map((item) => ({
-          singer: item.singer,
-          song: item.song,
-        }));
+        // Convert singer groups back to flat queue
+        const reorderedQueue: any[] = [];
+        orderedSingers.forEach((singerGroup) => {
+          singerGroup.songs.forEach((song) => {
+            reorderedQueue.push({
+              singer: singerGroup.singer,
+              song: song,
+            });
+          });
+        });
         
         await showsStore.reorderQueue(showId, reorderedQueue);
         setHasChanges(false);
@@ -246,12 +322,12 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
     };
 
     const handleCancel = () => {
-      setOrderedQueue(currentQueue);
+      setOrderedSingers(singerGroups);
       setHasChanges(false);
       onClose();
     };
 
-    if (orderedQueue.length === 0) {
+    if (singerGroups.length === 0) {
       return (
         <Dialog
           open={open}
@@ -267,10 +343,10 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
             },
           }}
         >
-          <DialogTitle sx={{ fontWeight: 600 }}>Queue Order</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600 }}>Singer Order</DialogTitle>
           <DialogContent sx={{ textAlign: "center", py: 4 }}>
             <Typography variant="body1" color="text.secondary">
-              The queue is empty. Add some songs first!
+              The queue is empty. Add some singers first!
             </Typography>
           </DialogContent>
           <DialogActions>
@@ -279,6 +355,8 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
         </Dialog>
       );
     }
+
+    const totalSongs = singerGroups.reduce((sum, group) => sum + group.totalSongs, 0);
 
     return (
       <Dialog
@@ -311,55 +389,27 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
             }}
           >
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Reorder Queue
+              Order Singers
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Drag songs to reorder • {orderedQueue.length} songs
+              Drag singers to reorder • {orderedSingers.length} singers • {totalSongs} songs
             </Typography>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ p: 3, maxHeight: "60vh", overflow: "auto" }}>
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <SortableContext
-              items={orderedQueue.map((item) => item.id)}
+              items={orderedSingers.map((singer) => singer.id)}
               strategy={verticalListSortingStrategy}
             >
               <List sx={{ width: "100%", p: 0 }}>
-                {orderedQueue.map((item, index) => (
-                  <Box key={item.id} sx={{ position: "relative" }}>
-                    {/* Position indicator */}
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        left: -16,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        background: "linear-gradient(45deg, #6c5ce7, #a29bfe)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1,
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "white",
-                          fontWeight: "bold",
-                          fontSize: "0.7rem",
-                        }}
-                      >
-                        {index + 1}
-                      </Typography>
-                    </Box>
-                    <SortableQueueItem
-                      item={item}
-                      getUserColor={getUserColor}
-                    />
-                  </Box>
+                {orderedSingers.map((singerGroup, index) => (
+                  <SortableSingerGroup
+                    key={singerGroup.id}
+                    singerGroup={singerGroup}
+                    position={index + 1}
+                    getUserColor={getUserColor}
+                  />
                 ))}
               </List>
             </SortableContext>

@@ -196,12 +196,29 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
           </AccordionSummary>
           <AccordionDetails>
             {/* Step 1: Add Singer */}
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 700, mb: 2, opacity: 0.8 }}
-            >
-              1. Add Singer
-            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: 700, opacity: 0.8 }}
+              >
+                1. Add Singer
+              </Typography>
+              {queue && queue.length > 1 && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setQueueOrderModalOpen(true)}
+                  sx={{
+                    fontSize: "0.75rem",
+                    py: 0.5,
+                    px: 1.5,
+                    borderRadius: 1.5,
+                  }}
+                >
+                  Order Singers
+                </Button>
+              )}
+            </Box>
 
             {/* Singer Selection Row */}
             <Box
@@ -330,38 +347,14 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
 
             {/* Step 2: Queue */}
             <Box sx={{ mb: 3 }}>
-              <Box
-                sx={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "space-between", 
-                  mb: 2 
-                }}
-              >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <QueueMusicIcon fontSize="small" />
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: 700, opacity: 0.8 }}
-                  >
-                    2. Queue
-                  </Typography>
-                </Box>
-                {queue && queue.length > 1 && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => setQueueOrderModalOpen(true)}
-                    sx={{
-                      fontSize: "0.75rem",
-                      py: 0.5,
-                      px: 1.5,
-                      borderRadius: 1.5,
-                    }}
-                  >
-                    Reorder
-                  </Button>
-                )}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                <QueueMusicIcon fontSize="small" />
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: 700, opacity: 0.8 }}
+                >
+                  2. Queue
+                </Typography>
               </Box>
 
               {!queue || queue.length === 0 ? (

@@ -107,6 +107,14 @@ export class ShowsController {
     return this.showsService.removeQueueBySinger(id, body.singer);
   }
 
+  @Patch(":id/queue/reorder")
+  async reorderQueue(
+    @Param("id") id: string,
+    @Body() body: { queue: QueueItem[] }
+  ): Promise<Show | undefined> {
+    return this.showsService.reorderQueue(id, body.queue);
+  }
+
   @Post("admin/invalidate-all")
   @UseGuards(AdminGuard)
   async invalidateAllShows(): Promise<{ affected: number }> {
