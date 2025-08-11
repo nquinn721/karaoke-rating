@@ -32,6 +32,7 @@ export class ShowsStore {
       fetchShowRatings: action,
       clearCurrentShow: action,
       addToQueue: action,
+      reorderQueue: action,
       nextPerformance: action,
       removeQueueBySinger: action, // <-- Add action for removing queue by singer
       removeQueueItem: action, // <-- Add action for removing a specific queue item
@@ -275,6 +276,32 @@ export class ShowsStore {
         this.error = error instanceof Error ? error.message : "Unknown error";
       });
       throw error;
+    }
+  }
+
+  async reorderQueue(showId: string, newQueue: { singer: string; song: string }[]) {
+    try {
+      const updated = await this.baseAPI.patch<Show>(
+        `/api/shows/${showId}/queue/reorder`,
+        { queue: newQueue }
+      );
+      runInAction(() => {
+        if (this.currentShow && this.currentShow.id === showId) {
+          this.currentShow.queue = updated.queue || ([] as any);
+        }
+        const index = this.shows.findIndex((s) => s.id === showId);
+        if (index !== -1) this.shows[index] = updated;
+      });
+      return updated;
+    } catch (error) {
+      // Fallback: update locally even if server fails
+      runInAction(() => {
+        if (this.currentShow && this.currentShow.id === showId) {
+          this.currentShow.queue = newQueue as any;
+        }
+      });
+      console.error("Failed to reorder queue on server:", error);
+      return this.currentShow;
     }
   }
 

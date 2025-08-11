@@ -29,6 +29,7 @@ import { observer } from "mobx-react-lite";
 import React, { useMemo, useState } from "react";
 import { useAutocomplete } from "../hooks/useAutocomplete";
 import { rootStore } from "../stores/RootStore";
+import QueueOrderModal from "./QueueOrderModal";
 
 interface CurrentPerformanceProps {
   showId: string;
@@ -41,6 +42,7 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
 
     const [queueSinger, setQueueSinger] = useState(userStore.username || "");
     const [queueSong, setQueueSong] = useState("");
+    const [queueOrderModalOpen, setQueueOrderModalOpen] = useState(false);
 
     // Autocomplete only for queue song
     const { suggestions: queueSuggestions, loading: queueLoading } =
@@ -146,6 +148,21 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
     };
 
     if (!show) return null;
+
+    // Generate consistent colors for usernames (same as HistoryPage)
+    const getUserColor = (username: string) => {
+      const colors = [
+        "#ff6b6b", "#4ecdc4", "#45b7d1", "#f9ca24", "#6c5ce7",
+        "#a29bfe", "#fd79a8", "#00b894", "#e17055", "#74b9ff",
+        "#55a3ff", "#26de81", "#fc5c65", "#fed330"
+      ];
+
+      let hash = 0;
+      for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    };
 
     return (
       <>
@@ -314,15 +331,37 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
             {/* Step 2: Queue */}
             <Box sx={{ mb: 3 }}>
               <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
+                sx={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "space-between", 
+                  mb: 2 
+                }}
               >
-                <QueueMusicIcon fontSize="small" />
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, opacity: 0.8 }}
-                >
-                  2. Queue
-                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <QueueMusicIcon fontSize="small" />
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, opacity: 0.8 }}
+                  >
+                    2. Queue
+                  </Typography>
+                </Box>
+                {queue && queue.length > 1 && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setQueueOrderModalOpen(true)}
+                    sx={{
+                      fontSize: "0.75rem",
+                      py: 0.5,
+                      px: 1.5,
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    Reorder
+                  </Button>
+                )}
               </Box>
 
               {!queue || queue.length === 0 ? (
@@ -495,6 +534,14 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Queue Order Modal */}
+        <QueueOrderModal
+          open={queueOrderModalOpen}
+          onClose={() => setQueueOrderModalOpen(false)}
+          showId={showId}
+          getUserColor={getUserColor}
+        />
       </>
     );
   }
