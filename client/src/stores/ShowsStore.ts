@@ -1,4 +1,4 @@
-import { action, makeObservable, observable, runInAction } from "mobx";
+import { action, computed, makeObservable, observable, runInAction } from "mobx";
 import { BaseAPIStore } from "./BaseAPIStore";
 import { Show } from "./types";
 
@@ -25,6 +25,8 @@ export class ShowsStore {
       currentShow: observable,
       loading: observable,
       error: observable,
+      isKarafunShow: computed,
+      currentPerformer: computed,
       fetchShows: action,
       createShow: action,
       joinShow: action,
@@ -40,6 +42,65 @@ export class ShowsStore {
       removeQueueItem: action, // <-- Add action for removing a specific queue item
       deleteShow: action, // <-- Add action for deleting a show
     });
+  }
+
+  // Computed properties for business logic
+  get isKarafunShow(): boolean {
+    return this.currentShow?.venue?.toLowerCase() === "karafun";
+  }
+
+  get currentPerformer(): { singer?: string; song?: string } {
+    if (!this.rootStore) {
+      return { singer: undefined, song: undefined };
+    }
+
+    const { chatStore, karafunStore } = this.rootStore;
+    const showId = this.currentShow?.id;
+    const live = showId ? chatStore.currentPerformerByShow.get(showId) : undefined;
+
+    // For Karafun shows, validate that the performer is a registered user
+    if (this.isKarafunShow) {
+      // Get the first performer from Karafun queue data
+      const firstKarafunSong = karafunStore.songEntries.find(
+        (entry: any) => entry.position === 1
+      );
+
+      if (firstKarafunSong) {
+        // Check if the Karafun nickname matches any of our registered users
+        const karafunNickname = firstKarafunSong.singer;
+
+        // Get list of participants (registered users in this show)
+        const currentParticipants = this.currentShow?.participants || [];
+        const registeredUsers = Array.isArray(currentParticipants)
+          ? currentParticipants
+          : [];
+
+        // Only allow rating if the Karafun nickname is one of our registered users
+        const isRegisteredUser = registeredUsers.includes(karafunNickname);
+
+        if (isRegisteredUser) {
+          return {
+            singer: karafunNickname,
+            song: firstKarafunSong.song,
+          };
+        } else {
+          // Karafun performer is not a registered user - no rating allowed
+          console.log(
+            `🚫 Karafun performer "${karafunNickname}" is not a registered user, skipping rating`
+          );
+          return { singer: undefined, song: undefined };
+        }
+      }
+
+      // No valid Karafun performer found
+      return { singer: undefined, song: undefined };
+    }
+
+    // For non-Karafun shows, use the original logic
+    return {
+      singer: live?.singer ?? this.currentShow?.currentSinger,
+      song: live?.song ?? this.currentShow?.currentSong,
+    } as { singer?: string; song?: string };
   }
 
   // Normalize server responses to ensure arrays are always defined

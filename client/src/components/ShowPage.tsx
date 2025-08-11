@@ -28,10 +28,11 @@ import {
   Typography,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 import { rootStore } from "../stores/RootStore";
+import { formatTime, getUserColor, isCurrentUser } from "../utils/colorUtils";
 import CurrentPerformance from "./CurrentPerformance";
 import KarafunAccordion from "./KarafunAccordion";
 import RatingsTab from "./RatingsTab";
@@ -127,67 +128,9 @@ const ShowPage: React.FC = observer(() => {
         showsStore.currentShow?.participants)) ||
     [];
 
-  // Helper function to check if current show is a Karafun venue
-  const isKarafunShow = () => {
-    return showsStore.currentShow?.venue?.toLowerCase() === "karafun";
-  };
-
-  // Prefer live current performer from sockets
-  const currentPerformer = useMemo(() => {
-    const live = id ? chatStore.currentPerformerByShow.get(id) : undefined;
-
-    // For Karafun shows, validate that the performer is a registered user
-    if (isKarafunShow()) {
-      // Get the first performer from Karafun queue data
-      const firstKarafunSong = karafunStore.songEntries.find(
-        (entry) => entry.position === 1
-      );
-
-      if (firstKarafunSong) {
-        // Check if the Karafun nickname matches any of our registered users
-        const karafunNickname = firstKarafunSong.singer;
-
-        // Get list of participants (registered users in this show)
-        const registeredUsers = Array.isArray(currentParticipants)
-          ? currentParticipants
-          : [];
-
-        // Only allow rating if the Karafun nickname is one of our registered users
-        const isRegisteredUser = registeredUsers.includes(karafunNickname);
-
-        if (isRegisteredUser) {
-          return {
-            singer: karafunNickname,
-            song: firstKarafunSong.song,
-          };
-        } else {
-          // Karafun performer is not a registered user - no rating allowed
-          console.log(
-            `🚫 Karafun performer "${karafunNickname}" is not a registered user, skipping rating`
-          );
-          return { singer: undefined, song: undefined };
-        }
-      }
-
-      // No valid Karafun performer found
-      return { singer: undefined, song: undefined };
-    }
-
-    // For non-Karafun shows, use the original logic
-    return {
-      singer: live?.singer ?? showsStore.currentShow?.currentSinger,
-      song: live?.song ?? showsStore.currentShow?.currentSong,
-    } as { singer?: string; song?: string };
-  }, [
-    id,
-    // Use the specific entry for this id instead of the entire map
-    id ? chatStore.currentPerformerByShow.get(id) : undefined,
-    showsStore.currentShow?.currentSinger,
-    showsStore.currentShow?.currentSong,
-    showsStore.currentShow?.venue,
-    karafunStore.songEntries,
-    currentParticipants,
-  ]);
+  // Get computed values from store
+  const isKarafunShow = showsStore.isKarafunShow;
+  const currentPerformer = showsStore.currentPerformer;
 
   useEffect(() => {
     const list = Array.isArray(currentParticipants) ? currentParticipants : [];
@@ -322,41 +265,6 @@ const ShowPage: React.FC = observer(() => {
       setChatMessage("");
     }
   };
-
-  const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  // Generate consistent colors for usernames
-  const getUserColor = (username: string) => {
-    const colors = [
-      "#ff6b6b", // Coral red
-      "#4ecdc4", // Turquoise
-      "#45b7d1", // Sky blue
-      "#f9ca24", // Yellow
-      "#6c5ce7", // Purple
-      "#a29bfe", // Light purple
-      "#fd79a8", // Pink
-      "#00b894", // Green
-      "#e17055", // Orange
-      "#74b9ff", // Light blue
-      "#55a3ff", // Blue
-      "#26de81", // Light green
-      "#fc5c65", // Red
-      "#fed330", // Amber
-    ];
-
-    let hash = 0;
-    for (let i = 0; i < username.length; i++) {
-      hash = username.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  };
-
-  const isCurrentUser = (username: string) => username === userStore.username;
 
   if (!showsStore.currentShow) {
     return (
@@ -523,7 +431,7 @@ const ShowPage: React.FC = observer(() => {
           <CurrentPerformance showId={id || ""} hasUserRated={hasUserRated} />
 
           {/* Karafun Queue - show for Karafun venues above rating section */}
-          {isKarafunShow() && (
+          {isKarafunShow && (
             <KarafunAccordion
               showId={id || ""}
               expanded={karafunAccordionExpanded}
@@ -534,7 +442,7 @@ const ShowPage: React.FC = observer(() => {
           )}
 
           {/* Show message for Karafun performers who aren't registered users */}
-          {isKarafunShow() &&
+          {isKarafunShow &&
             karafunStore.songEntries.length > 0 &&
             karafunStore.songEntries.find((entry) => entry.position === 1) &&
             !currentPerformer.singer && (
@@ -707,7 +615,7 @@ const ShowPage: React.FC = observer(() => {
             )}
 
           {/* Queue Management - only show for non-Karafun venues */}
-          {!isKarafunShow() && (
+          {!isKarafunShow && (
             <Paper
               sx={{
                 p: 2,
@@ -792,7 +700,7 @@ const ShowPage: React.FC = observer(() => {
                   sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
                 >
                   {chatStore.messages.map((message, index) => {
-                    const isOwn = isCurrentUser(message.username);
+                    const isOwn = isCurrentUser(message.username, userStore.username);
                     const userColor = getUserColor(message.username);
                     const isFirstFromUser =
                       index === 0 ||
