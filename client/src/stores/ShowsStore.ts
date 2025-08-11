@@ -8,14 +8,16 @@ export class ShowsStore {
   loading: boolean = false;
   error: string | null = null;
   private baseAPI: BaseAPIStore;
+  private rootStore?: any; // Reference to root store for snackbar
 
-  constructor(baseAPI: BaseAPIStore) {
+  constructor(baseAPI: BaseAPIStore, rootStore?: any) {
     // Explicitly initialize the shows array first
     this.shows = [];
     this.currentShow = null;
     this.loading = false;
     this.error = null;
     this.baseAPI = baseAPI;
+    this.rootStore = rootStore;
 
     // Then make observable with explicit configuration
     makeObservable(this, {
@@ -255,7 +257,11 @@ export class ShowsStore {
   }
 
   async addToQueue(showId: string, singer: string, song: string) {
-    console.log(`[DEBUG] ShowsStore.addToQueue called with:`, { showId, singer, song });
+    console.log(`[DEBUG] ShowsStore.addToQueue called with:`, {
+      showId,
+      singer,
+      song,
+    });
     try {
       const updated = await this.baseAPI.post<Show>(
         `/api/shows/${showId}/queue`,
@@ -268,25 +274,50 @@ export class ShowsStore {
       runInAction(() => {
         if (this.currentShow && this.currentShow.id === showId) {
           this.currentShow.queue = updated.queue || ([] as any);
-          console.log(`[DEBUG] Updated currentShow.queue:`, this.currentShow.queue);
+          console.log(
+            `[DEBUG] Updated currentShow.queue:`,
+            this.currentShow.queue
+          );
         }
         const index = this.shows.findIndex((s) => s.id === showId);
         if (index !== -1) {
           this.shows[index] = updated;
-          console.log(`[DEBUG] Updated show in shows array:`, this.shows[index].queue);
+          console.log(
+            `[DEBUG] Updated show in shows array:`,
+            this.shows[index].queue
+          );
         }
       });
+
+      // Show success snackbar
+      if (this.rootStore?.snackbarStore) {
+        this.rootStore.snackbarStore.showSuccess(
+          `🎵 "${song}" added to queue for ${singer}`
+        );
+      }
+
       return updated;
     } catch (error) {
       console.error(`[DEBUG] Error in addToQueue:`, error);
       runInAction(() => {
         this.error = error instanceof Error ? error.message : "Unknown error";
       });
+
+      // Show error snackbar
+      if (this.rootStore?.snackbarStore) {
+        this.rootStore.snackbarStore.showError(
+          `❌ Failed to add "${song}" to queue. Please try again.`
+        );
+      }
+
       throw error;
     }
   }
 
-  async reorderQueue(showId: string, newQueue: { singer: string; song: string }[]) {
+  async reorderQueue(
+    showId: string,
+    newQueue: { singer: string; song: string }[]
+  ) {
     try {
       const updated = await this.baseAPI.patch<Show>(
         `/api/shows/${showId}/queue/reorder`,
@@ -368,7 +399,7 @@ export class ShowsStore {
     try {
       const updated = await this.baseAPI.delete<Show>(
         `/api/shows/${showId}/queue/item`,
-        { data: { index } }
+        { params: { index }, data: { index } }
       );
       runInAction(() => {
         if (this.currentShow && this.currentShow.id === showId) {

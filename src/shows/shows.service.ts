@@ -2,6 +2,7 @@ import { Inject, Injectable, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { ChatGateway } from "../chat/chat.gateway";
+import { KarafunService } from "../karafun/karafun.service";
 import { Rating } from "../rating/entities/rating.entity";
 import { User } from "../user/entities/user.entity";
 import { Show } from "./entities/show.entity";
@@ -25,7 +26,8 @@ export class ShowsService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @Inject(forwardRef(() => ChatGateway))
-    private readonly chatGateway: ChatGateway
+    private readonly chatGateway: ChatGateway,
+    private readonly karafunService: KarafunService
   ) {}
 
   private async getUsernameById(userId: number): Promise<string> {
@@ -189,10 +191,18 @@ export class ShowsService {
       createdAt: show.createdAt,
       isValid: show.isValid,
       queue: show.queue || [],
-      currentSinger: show.currentSingerId
-        ? await this.getUsernameById(show.currentSingerId)
-        : undefined,
+      // For Karafun shows, prefer the Karafun singer name over database username
+      currentSinger:
+        show.venue === "karafun" && show.karafunCurrentSinger
+          ? show.karafunCurrentSinger
+          : show.currentSingerId
+            ? await this.getUsernameById(show.currentSingerId)
+            : undefined,
       currentSong: show.currentSong,
+      karafunUrl: show.karafunUrl,
+      karafunCurrentSinger: show.karafunCurrentSinger,
+      karafunCachedData: show.karafunCachedData,
+      karafunLastParsed: show.karafunLastParsed,
     };
   }
 
@@ -262,18 +272,51 @@ export class ShowsService {
 
     if (!show) return undefined;
 
-    // Find the user ID by username
-    const user = await this.userRepository.findOne({
-      where: { username: singer },
-    });
+    // For Karafun shows, only allow registered users (participants in the show)
+    if (show.venue === "karafun") {
+      // Find user in our database - must exist and be a participant
+      const user = await this.userRepository.findOne({
+        where: { username: singer },
+      });
 
-    if (!user) {
-      console.error(`User not found: ${singer}`);
-      return undefined;
+      if (!user) {
+        console.log(
+          `❌ Karafun performer "${singer}" is not a registered user, ignoring`
+        );
+        return undefined;
+      }
+
+      // Check if the user is a participant in this show
+      const participants = show.participants || [];
+      if (!participants.includes(user.id)) {
+        console.log(
+          `❌ Karafun performer "${singer}" is not a participant in this show, ignoring`
+        );
+        return undefined;
+      }
+
+      show.currentSingerId = user.id;
+      show.currentSong = song;
+      show.karafunCurrentSinger = singer;
+
+      console.log(
+        `✅ Setting Karafun current performer: ${singer} - ${song} (validated registered participant)`
+      );
+    } else {
+      // For regular shows, require user to exist in our database
+      const user = await this.userRepository.findOne({
+        where: { username: singer },
+      });
+
+      if (!user) {
+        console.error(`User not found: ${singer}`);
+        return undefined;
+      }
+
+      show.currentSingerId = user.id;
+      show.currentSong = song;
     }
 
-    show.currentSingerId = user.id;
-    show.currentSong = song;
     await this.showRepository.save(show);
 
     const allShows = await this.getAllShows();
@@ -294,7 +337,7 @@ export class ShowsService {
     item: QueueItem
   ): Promise<ShowInterface | undefined> {
     console.log(`[DEBUG] Adding to queue - showId: ${showId}, item:`, item);
-    
+
     const show = await this.showRepository.findOne({
       where: { id: parseInt(showId) },
     });
@@ -306,17 +349,24 @@ export class ShowsService {
 
     const queue = show.queue || [];
     console.log(`[DEBUG] Current queue before adding:`, queue);
-    
+
     queue.push({ singer: item.singer, song: item.song });
     show.queue = queue;
-    
+
     console.log(`[DEBUG] Queue after adding:`, show.queue);
-    
+
     const savedShow = await this.showRepository.save(show);
     console.log(`[DEBUG] Saved show queue:`, savedShow.queue);
 
     // Notify clients of queue change
     console.log(`[DEBUG] Emitting queueUpdated to room: ${showId}`);
+    // Debug: Check how many clients are in this room
+    const roomSockets = await this.chatGateway.server.in(showId).fetchSockets();
+    console.log(
+      `[DEBUG] Room ${showId} has ${roomSockets.length} connected clients:`,
+      roomSockets.map((s) => s.id)
+    );
+
     this.chatGateway.server.to(showId).emit("queueUpdated", {
       showId,
       queue: savedShow.queue,
@@ -551,7 +601,8 @@ export class ShowsService {
 
   async reorderQueue(
     showId: string,
-    newQueue: QueueItem[]
+    newQueue: QueueItem[],
+    singerOrder?: string[]
   ): Promise<ShowInterface | undefined> {
     const show = await this.showRepository.findOne({
       where: { id: parseInt(showId) },
@@ -559,14 +610,40 @@ export class ShowsService {
 
     if (!show) return undefined;
 
-    // Update the queue with the new order
-    show.queue = newQueue;
+    // Persist singer order if provided
+    if (singerOrder && Array.isArray(singerOrder)) {
+      show.singerOrder = singerOrder;
+    }
+
+    // Always sort queue by singerOrder if present
+    let sortedQueue = newQueue;
+    if (show.singerOrder && show.singerOrder.length) {
+      const rank = new Map<string, number>(
+        show.singerOrder.map((s, i) => [s, i])
+      );
+      sortedQueue = newQueue
+        .map((item, idx) => ({ item, idx }))
+        .sort((a, b) => {
+          const ra = rank.has(a.item.singer)
+            ? (rank.get(a.item.singer) as number)
+            : Number.MAX_SAFE_INTEGER;
+          const rb = rank.has(b.item.singer)
+            ? (rank.get(b.item.singer) as number)
+            : Number.MAX_SAFE_INTEGER;
+          if (ra !== rb) return ra - rb;
+          return a.idx - b.idx;
+        })
+        .map((e) => e.item);
+    }
+
+    show.queue = sortedQueue;
     await this.showRepository.save(show);
 
     // Notify clients of the queue update
     this.chatGateway.server.to(showId).emit("queueUpdated", {
       showId,
       queue: show.queue,
+      singerOrder: show.singerOrder,
     });
 
     return this.getShow(showId);
@@ -675,5 +752,196 @@ export class ShowsService {
       performer: currentPerformer,
       song: show.currentSong || undefined,
     };
+  }
+
+  async updateKarafunUrl(
+    showId: string,
+    karafunUrl: string
+  ): Promise<ShowInterface | undefined> {
+    const show = await this.showRepository.findOne({
+      where: { id: parseInt(showId), isValid: true },
+    });
+
+    if (!show) {
+      return undefined;
+    }
+
+    // Only allow Karafun URL updates for Karafun venues
+    if (show.venue !== "karafun") {
+      throw new Error("Karafun URL can only be set for Karafun venues");
+    }
+
+    show.karafunUrl = karafunUrl;
+    await this.showRepository.save(show);
+
+    return this.getShow(showId);
+  }
+
+  async getKarafunQueue(showId: string): Promise<any> {
+    const show = await this.showRepository.findOne({
+      where: { id: parseInt(showId), isValid: true },
+    });
+
+    if (!show) {
+      throw new Error("Show not found");
+    }
+
+    if (show.venue !== "karafun") {
+      throw new Error("Karafun queue is only available for Karafun shows");
+    }
+
+    // Check if we have cached data and if it's still fresh (less than 5 minutes old)
+    const cacheMaxAge = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const now = new Date();
+
+    if (
+      show.karafunCachedData &&
+      show.karafunLastParsed &&
+      now.getTime() - show.karafunLastParsed.getTime() < cacheMaxAge
+    ) {
+      console.log(
+        `🎵 Using cached Karafun data for show ${showId} (age: ${Math.round((now.getTime() - show.karafunLastParsed.getTime()) / 1000)}s)`
+      );
+      return show.karafunCachedData;
+    }
+
+    // Cache is stale or doesn't exist, fetch fresh data
+    let karafunData;
+
+    try {
+      if (!show.karafunUrl) {
+        // For testing purposes, use hardcoded URL
+        const testUrl = "https://www.karafun.com/karaokebar/080601";
+        console.log("🧪 Using test URL for Karafun parsing:", testUrl);
+        karafunData = await this.karafunService.parseQueueFromUrl(testUrl);
+      } else {
+        console.log(
+          `🎤 Fetching fresh Karafun data for show ${showId} from ${show.karafunUrl}`
+        );
+        karafunData = await this.karafunService.parseQueueFromUrl(
+          show.karafunUrl
+        );
+      }
+
+      // Only update cache if parsing was successful and returned valid data
+      if (karafunData && (karafunData.singers || karafunData.songEntries)) {
+        show.karafunCachedData = karafunData;
+        show.karafunLastParsed = now;
+        await this.showRepository.save(show);
+
+        console.log(
+          `💾 Cached fresh Karafun data for show ${showId} with ${karafunData.singers?.length || 0} singers`
+        );
+
+        // Always broadcast the updated data to all clients in the show
+        // This ensures that whenever fresh Karafun data is fetched, all connected clients are updated
+        console.log(
+          `📡 Broadcasting Karafun queue update to all clients in show ${showId}`
+        );
+        this.chatGateway.server
+          .to(`show_${showId}`)
+          .emit("karafunQueueUpdated", {
+            showId: parseInt(showId),
+            karafunData: karafunData,
+          });
+      } else {
+        console.log(
+          `⚠️ Parsing returned empty data for show ${showId}, not updating cache`
+        );
+
+        // If we have cached data but parsing failed, return cached data
+        if (show.karafunCachedData) {
+          console.log(
+            `🔄 Returning stale cached data for show ${showId} due to parsing failure`
+          );
+          return show.karafunCachedData;
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Karafun parsing failed for show ${showId}:`, error);
+
+      // If parsing fails but we have cached data, return it even if stale
+      if (show.karafunCachedData) {
+        console.log(
+          `🔄 Returning stale cached data for show ${showId} due to parsing error`
+        );
+        return show.karafunCachedData;
+      }
+
+      // No cached data and parsing failed - return empty structure
+      karafunData = {
+        singers: [],
+        songEntries: [],
+        sessionId: null,
+        lastUpdated: new Date().toISOString(),
+        pageState: "error",
+        stateMessage: "Failed to parse Karafun queue",
+        hasCurrentPerformer: false,
+      };
+    }
+
+    return karafunData;
+  }
+
+  /**
+   * Force refresh Karafun queue data for a show and broadcast to all clients
+   * This method bypasses cache and always fetches fresh data
+   */
+  async refreshKarafunQueue(showId: string): Promise<any> {
+    const show = await this.showRepository.findOne({
+      where: { id: parseInt(showId), isValid: true },
+    });
+
+    if (!show) {
+      throw new Error("Show not found");
+    }
+
+    if (show.venue !== "karafun") {
+      throw new Error(
+        "Karafun queue refresh is only available for Karafun shows"
+      );
+    }
+
+    if (!show.karafunUrl) {
+      throw new Error("No Karafun URL set for this show");
+    }
+
+    console.log(
+      `🔄 Force refreshing Karafun data for show ${showId} from ${show.karafunUrl}`
+    );
+
+    try {
+      const karafunData = await this.karafunService.parseQueueFromUrl(
+        show.karafunUrl
+      );
+
+      if (karafunData && (karafunData.singers || karafunData.songEntries)) {
+        show.karafunCachedData = karafunData;
+        show.karafunLastParsed = new Date();
+        await this.showRepository.save(show);
+
+        console.log(
+          `💾 Cached refreshed Karafun data for show ${showId} with ${karafunData.singers?.length || 0} singers`
+        );
+
+        // Always broadcast the updated data to all clients in the show
+        console.log(
+          `📡 Broadcasting forced Karafun queue refresh to all clients in show ${showId}`
+        );
+        this.chatGateway.server
+          .to(`show_${showId}`)
+          .emit("karafunQueueUpdated", {
+            showId: parseInt(showId),
+            karafunData: karafunData,
+          });
+
+        return karafunData;
+      } else {
+        throw new Error("Parsed data was empty or invalid");
+      }
+    } catch (error) {
+      console.error(`❌ Karafun refresh failed for show ${showId}:`, error);
+      throw error;
+    }
   }
 }

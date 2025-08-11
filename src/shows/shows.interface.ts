@@ -16,6 +16,12 @@ export interface Show {
   isValid?: boolean; // Whether the show is still valid/active
   // New: upcoming performances queue
   queue: QueueItem[];
+  singerOrder?: string[];
+  // Karafun integration
+  karafunUrl?: string; // URL from QR code scan for Karafun shows
+  karafunCurrentSinger?: string; // Current Karafun singer (may not exist in our user database)
+  karafunCachedData?: any; // Cached Karafun queue data
+  karafunLastParsed?: Date; // Last time Karafun data was parsed
 }
 
 export interface Rating {
@@ -47,6 +53,10 @@ export interface LeaveShowDto {
 export interface UpdateCurrentPerformerDto {
   singer: string;
   song: string;
+}
+
+export interface UpdateKarafunUrlDto {
+  karafunUrl: string;
 }
 
 export interface RatePerformanceDto {

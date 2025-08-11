@@ -2,6 +2,7 @@ import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AdminGuard } from "../auth/admin.guard";
 import { ChatModule } from "../chat/chat.module";
+import { KarafunModule } from "../karafun/karafun.module";
 import { Rating } from "../rating/entities/rating.entity";
 import { User } from "../user/entities/user.entity";
 import { UserModule } from "../user/user.module";
@@ -13,6 +14,7 @@ import { ShowsService } from "./shows.service";
   imports: [
     forwardRef(() => ChatModule),
     UserModule,
+    KarafunModule,
     TypeOrmModule.forFeature([Show, Rating, User]),
   ],
   controllers: [ShowsController],

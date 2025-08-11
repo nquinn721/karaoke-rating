@@ -1,0 +1,1345 @@
+import { HttpService } from "@nestjs/axios";
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { AxiosResponse } from "axios";
+import { firstValueFrom } from "rxjs";
+import { Repository } from "typeorm";
+import * as puppeteer from "puppeteer";
+import { KarafunSession as KarafunSessionEntity } from "./entities/karafun-session.entity";
+import {
+  KarafunQueueData,
+  KarafunSession,
+  KarafunSessionStatus,
+  KarafunSinger,
+  KarafunSongEntry,
+} from "./karafun.interface";
+
+@Injectable()
+export class KarafunService {
+  private readonly logger = new Logger(KarafunService.name);
+  private readonly nickName = "karafun_user_1"; // 13 chars, within 16 char limit
+
+  constructor(
+    private readonly httpService: HttpService,
+    @InjectRepository(KarafunSessionEntity)
+    private readonly sessionRepository: Repository<KarafunSessionEntity>
+  ) {}
+
+  /**
+   * Extract session ID from Karafun URL
+   */
+  private extractSessionId(url: string): string | null {
+    // Match both formats: karafun.com/123456 and karafun.com/session/123456
+    const match = url.match(/karafun\.com\/(?:session\/)?(\w+)/);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Parse singers from the queue using Puppeteer for SPA support
+   * Karafun is a modern SPA that loads queue data dynamically via JavaScript
+   * Static HTML parsing cannot work reliably, so we use Puppeteer as the primary solution
+   */
+  async parseQueueFromUrl(
+    url: string,
+    maxRetries: number = 2
+  ): Promise<KarafunQueueData> {
+    const sessionId = this.extractSessionId(url);
+    if (!sessionId) {
+      throw new Error("Invalid Karafun URL format");
+    }
+
+    this.logger.log(`🎯 Starting Puppeteer parse for session ${sessionId}`);
+    this.logger.log(`📋 URL: ${url}`);
+    this.logger.log(`🤖 Using Puppeteer as primary solution for SPA parsing`);
+
+    // Use Puppeteer as the primary and only reliable method for parsing SPAs
+    try {
+      return await this.parseQueueWithPuppeteer(url, maxRetries);
+    } catch (puppeteerError) {
+      this.logger.error("❌ Puppeteer parsing failed:", {
+        error: puppeteerError.message,
+        stack: puppeteerError.stack,
+        url,
+        sessionId
+      });
+      
+      // For SPAs, if Puppeteer fails, there's no viable fallback
+      throw new Error(`Failed to parse SPA session: ${puppeteerError.message}`);
+    }
+  }
+
+  /**
+   * Helper method to introduce delays
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Test parse with local HTML file
+   */
+  async parseTestHtml(): Promise<KarafunQueueData> {
+    const fs = require("fs");
+    const path = require("path");
+
+    try {
+      const htmlPath = path.join(process.cwd(), "src/karafun/testqueue.html");
+      const htmlContent = fs.readFileSync(htmlPath, "utf8");
+
+      const parseResult = this.extractSingersFromHtml(htmlContent);
+
+      return {
+        sessionId: "test-session",
+        singers: parseResult.singers,
+        songEntries: parseResult.songEntries,
+        unparsedEntries: parseResult.unparsedEntries,
+        totalEntries: parseResult.totalEntries,
+        totalSingers: parseResult.singers.length,
+        lastUpdated: new Date(),
+        pageState: parseResult.pageState,
+        stateMessage: parseResult.stateMessage,
+        hasCurrentPerformer: parseResult.hasCurrentPerformer,
+      };
+    } catch (error) {
+      this.logger.error(`Error parsing test HTML: ${error.message}`);
+      throw new Error(`Failed to parse test HTML: ${error.message}`);
+    }
+  }
+
+  /**
+   * Join a Karafun session with the hardcoded nickname and then parse the queue
+   * This method now simply delegates to Puppeteer since it's the only reliable method for SPAs
+   */
+  async joinSessionAndParseQueue(
+    url: string,
+    nickname: string = this.nickName
+  ): Promise<KarafunQueueData> {
+    this.logger.log(`🔄 Joining session with Puppeteer using nickname: ${nickname.substring(0, 16)}`);
+    
+    // Since Karafun is an SPA, just use Puppeteer directly
+    // The parseQueueWithPuppeteer method handles nickname joining automatically
+    return await this.parseQueueWithPuppeteer(url);
+  }
+
+  /**
+   * Use Puppeteer to join a session and get dynamic content
+   * This is now the primary method for parsing Karafun SPAs
+   */
+      );
+
+      // Step 1: Get the initial page to extract any form data or cookies
+      const initialResponse: AxiosResponse<string> = await firstValueFrom(
+        this.httpService.get(url, {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            Accept:
+              "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            DNT: "1",
+            Connection: "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+          },
+          timeout: 10000,
+        })
+      );
+
+      // Extract cookies from the initial response
+      const cookies = initialResponse.headers["set-cookie"] || [];
+      const cookieHeader = cookies
+        .map((cookie) => cookie.split(";")[0])
+        .join("; ");
+
+      // Check if we already have the queue page (nickname not required)
+      const initialParseResult = this.extractSingersFromHtml(
+        initialResponse.data
+      );
+      if (
+        initialParseResult.pageState === "populated" ||
+        initialParseResult.pageState === "empty"
+      ) {
+        this.logger.log("Session is already accessible without nickname entry");
+
+        // Save session data
+        await this.saveSessionData(sessionId, url, initialParseResult);
+
+        return {
+          sessionId,
+          singers: initialParseResult.singers,
+          songEntries: initialParseResult.songEntries,
+          unparsedEntries: initialParseResult.unparsedEntries,
+          totalEntries: initialParseResult.totalEntries,
+          totalSingers: initialParseResult.singers.length,
+          lastUpdated: new Date(),
+          pageState: initialParseResult.pageState,
+          stateMessage: initialParseResult.stateMessage,
+          hasCurrentPerformer: initialParseResult.hasCurrentPerformer,
+        };
+      }
+
+      if (initialParseResult.pageState !== "nickname-required") {
+        throw new Error(
+          `Unexpected page state: ${initialParseResult.pageState}. ${initialParseResult.stateMessage || ""}`
+        );
+      }
+
+      // Step 2: Submit the nickname form
+      this.logger.log("Submitting nickname form...");
+      this.logger.log(`Initial page state: ${initialParseResult.pageState}`);
+      this.logger.log(
+        `Cookies extracted: ${cookieHeader ? "Yes (" + cookieHeader.length + " chars)" : "None"}`
+      );
+
+      // Try different possible form submission endpoints based on network analysis
+      const possibleEndpoints = [
+        `${url}?type=queueData`, // Based on network tab observation
+        `https://www.karafun.com/${sessionId}?type=queueData`, // Alternative format
+        `https://www.karafun.com/api/sessions/${sessionId}/join`, // API endpoint
+        `https://www.karafun.com/api/sessions/${sessionId}/customize`, // API endpoint for customize
+        `https://www.karafun.com/${sessionId}/customize`, // Customize endpoint
+        `https://www.karafun.com/${sessionId}/login`, // Login endpoint
+        `${url}`, // Original URL
+        `${url}/join`, // Join sub-path
+        `https://www.karafun.com/${sessionId}/join`, // Join with session format
+      ];
+
+      this.logger.log(
+        `Will try ${possibleEndpoints.length} different endpoints for form submission`
+      );
+
+      let joinResponse: AxiosResponse<string> | null = null;
+      let lastError: any = null;
+
+      for (const endpoint of possibleEndpoints) {
+        try {
+          this.logger.log(
+            `Trying endpoint ${possibleEndpoints.indexOf(endpoint) + 1}/${possibleEndpoints.length}: ${endpoint}`
+          );
+
+          // Try different payload formats based on what Karafun might expect
+          const payloads = [
+            // Format 1: Original field name from form analysis
+            {
+              data: `customize-session=${encodeURIComponent(cleanNickname)}`,
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              name: "customize-session field",
+            },
+            // Format 2: Alternative field name from form analysis
+            {
+              data: `request-username-template=${encodeURIComponent(cleanNickname)}`,
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              name: "request-username-template field",
+            },
+            // Format 3: Original nickname field (fallback)
+            {
+              data: `nickname=${encodeURIComponent(cleanNickname)}`,
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              name: "nickname field",
+            },
+            // Format 4: userName field (from input ID)
+            {
+              data: `userName=${encodeURIComponent(cleanNickname)}`,
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              name: "userName field",
+            },
+            // Format 5: Multiple fields combined
+            {
+              data: new URLSearchParams({
+                "customize-session": cleanNickname,
+                nickname: cleanNickname,
+                userName: cleanNickname,
+              }).toString(),
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              name: "multiple username fields",
+            },
+          ];
+
+          this.logger.log(
+            `Will try ${payloads.length} different payload formats for this endpoint`
+          );
+
+          for (const payload of payloads) {
+            try {
+              this.logger.log(`  Attempting payload: ${payload.name}`);
+              this.logger.log(
+                `  Data: ${payload.data.length > 100 ? payload.data.substring(0, 100) + "..." : payload.data}`
+              );
+
+              joinResponse = await firstValueFrom(
+                this.httpService.post(endpoint, payload.data, {
+                  headers: {
+                    "User-Agent":
+                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    Accept:
+                      "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    DNT: "1",
+                    Connection: "keep-alive",
+                    "Upgrade-Insecure-Requests": "1",
+                    Referer: url,
+                    Cookie: cookieHeader,
+                    ...payload.headers,
+                    ...payload.headers,
+                  },
+                  maxRedirects: 5,
+                  timeout: 15000,
+                })
+              );
+
+              if (joinResponse) {
+                this.logger.log(
+                  `  ✅ SUCCESS! Response status: ${joinResponse.status}`
+                );
+                this.logger.log(
+                  `  Response content length: ${joinResponse.data.length} characters`
+                );
+                this.logger.log(
+                  `  Response content preview: ${joinResponse.data.substring(0, 200)}...`
+                );
+                this.logger.log(
+                  `Successfully submitted to: ${endpoint} with payload type: ${payload.headers["Content-Type"]}`
+                );
+                break;
+              }
+            } catch (payloadError) {
+              this.logger.warn(
+                `  ❌ Payload format failed for ${endpoint}: ${payloadError.message}`
+              );
+              continue;
+            }
+          }
+
+          if (joinResponse) {
+            break;
+          }
+        } catch (error) {
+          this.logger.warn(
+            `❌ Failed to submit to ${endpoint}: ${error.message}`
+          );
+          lastError = error;
+          continue;
+        }
+      }
+
+      if (!joinResponse) {
+        this.logger.error("Failed to submit nickname to any endpoint");
+        // Fall back to just parsing the original page
+        const parseResult = this.extractSingersFromHtml(initialResponse.data);
+        await this.saveSessionData(sessionId, url, parseResult);
+
+        return {
+          sessionId,
+          singers: parseResult.singers,
+          songEntries: parseResult.songEntries,
+          unparsedEntries: parseResult.unparsedEntries,
+          totalEntries: parseResult.totalEntries,
+          totalSingers: parseResult.singers.length,
+          lastUpdated: new Date(),
+          pageState: "error",
+          stateMessage: `Failed to join session automatically. Last error: ${lastError?.message || "Unknown error"}`,
+          hasCurrentPerformer: parseResult.hasCurrentPerformer,
+        };
+      }
+
+      // Step 3: Parse the response after joining - with retry logic for loading pages
+      this.logger.log("📋 Parsing response after form submission...");
+
+      let parseResult = this.extractSingersFromHtml(joinResponse.data);
+      this.logger.log(
+        `Initial parse result after form submission: ${parseResult.pageState}`
+      );
+      this.logger.log(
+        `Parse result message: ${parseResult.stateMessage || "No message"}`
+      );
+
+      // If the page is still loading after joining, wait and try a few more times
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (parseResult.pageState === "loading" && retryCount < maxRetries) {
+        this.logger.log(
+          `⏳ Page still loading after join, waiting 3 seconds... (retry ${retryCount + 1}/${maxRetries})`
+        );
+        await this.delay(3000);
+
+        this.logger.log(
+          `🔄 Fetching page again to check if loading completed...`
+        );
+        // Fetch the page again
+        const retryResponse: AxiosResponse<string> = await firstValueFrom(
+          this.httpService.get(url, {
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              Accept:
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+              "Accept-Language": "en-US,en;q=0.5",
+              DNT: "1",
+              Connection: "keep-alive",
+              "Upgrade-Insecure-Requests": "1",
+              Cookie: cookieHeader,
+            },
+            timeout: 10000,
+          })
+        );
+
+        this.logger.log(`📄 Retry response status: ${retryResponse.status}`);
+        this.logger.log(
+          `📄 Retry response content length: ${retryResponse.data?.length || 0} characters`
+        );
+        this.logger.log(
+          `📄 Retry response preview: ${retryResponse.data?.slice(0, 200)}...`
+        );
+
+        parseResult = this.extractSingersFromHtml(retryResponse.data);
+        retryCount++;
+
+        this.logger.log(
+          `🔄 Retry ${retryCount} parse result: ${parseResult.pageState}`
+        );
+        this.logger.log(
+          `🔄 Retry ${retryCount} message: ${parseResult.stateMessage || "No message"}`
+        );
+      }
+
+      // Save session data
+      this.logger.log("💾 Saving session data to database...");
+      await this.saveSessionData(sessionId, url, parseResult);
+
+      // If we still get nickname-required after attempting to join, treat it as an error
+      if (parseResult.pageState === "nickname-required") {
+        this.logger.warn(
+          "⚠️ Still showing nickname required after attempting to join - treating as error"
+        );
+        this.logger.warn(
+          `Final state: ${parseResult.pageState}, Message: ${parseResult.stateMessage || "No message"}`
+        );
+        return {
+          sessionId,
+          singers: parseResult.singers,
+          songEntries: parseResult.songEntries,
+          unparsedEntries: parseResult.unparsedEntries,
+          totalEntries: parseResult.totalEntries,
+          totalSingers: parseResult.singers.length,
+          lastUpdated: new Date(),
+          pageState: "error",
+          stateMessage: `Failed to automatically join session with nickname '${cleanNickname}'. Session may require manual intervention.`,
+          hasCurrentPerformer: parseResult.hasCurrentPerformer,
+        };
+      }
+
+      // Success - return the parsed queue data
+      this.logger.log("✅ Successfully joined session and parsed queue!");
+      this.logger.log(
+        `Final result: ${parseResult.singers.length} singers, ${parseResult.totalEntries} total entries`
+      );
+      this.logger.log(
+        `Final state: ${parseResult.pageState}, Message: ${parseResult.stateMessage || "No message"}`
+      );
+
+      return {
+        sessionId,
+        singers: parseResult.singers,
+        songEntries: parseResult.songEntries,
+        unparsedEntries: parseResult.unparsedEntries,
+        totalEntries: parseResult.totalEntries,
+        totalSingers: parseResult.singers.length,
+        lastUpdated: new Date(),
+        pageState: parseResult.pageState,
+        stateMessage: parseResult.stateMessage
+          ? `${parseResult.stateMessage} (Joined as: ${cleanNickname})`
+          : `Successfully joined as: ${cleanNickname}`,
+        hasCurrentPerformer: parseResult.hasCurrentPerformer,
+      };
+    } catch (error) {
+      this.logger.error("❌ Critical error in joinSessionAndParseQueue:", {
+        error: error.message,
+        stack: error.stack,
+        url,
+        sessionId,
+      });
+
+      this.logger.log('🔄 Form submission failed - falling back to Puppeteer...');
+      
+      try {
+        return await this.parseQueueWithPuppeteer(url);
+      } catch (puppeteerError) {
+        this.logger.error("❌ Both form submission and Puppeteer failed:", {
+          formError: error.message,
+          puppeteerError: puppeteerError.message
+        });
+        throw new Error(`Failed to join session: Form submission failed (${error.message}) and Puppeteer fallback failed (${puppeteerError.message})`);
+      }
+    }
+  }
+
+  /**
+   * Use Puppeteer to join a session and get dynamic content
+   * This method is used as a fallback when static HTML scraping fails
+   */
+  async parseQueueWithPuppeteer(
+    url: string,
+    maxRetries: number = 2
+  ): Promise<KarafunQueueData> {
+    const sessionId = this.extractSessionId(url);
+    if (!sessionId) {
+      throw new Error("Invalid Karafun URL format");
+    }
+
+    this.logger.log(`🚀 Using Puppeteer to parse session ${sessionId}`);
+
+    let browser: puppeteer.Browser | null = null;
+
+    try {
+      // Launch browser
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ]
+      });
+
+      const page = await browser.newPage();
+
+      // Set viewport and user agent
+      await page.setViewport({ width: 1920, height: 1080 });
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+      this.logger.log('📄 Loading page with Puppeteer...');
+      await page.goto(url, {
+        waitUntil: 'networkidle0',
+        timeout: 30000
+      });
+
+      // Check if we need to join the session
+      const needsJoining = await page.evaluate(() => {
+        return document.body.innerText.includes('What is your Nickname?');
+      });
+
+      if (needsJoining) {
+        this.logger.log('📝 Session requires nickname - attempting to join with Puppeteer...');
+
+        try {
+          // Find the nickname input field
+          const nicknameInput = await page.$('#userName, input[name="customize-session"], input[name="request-username-template"], input[type="text"]');
+
+          if (nicknameInput) {
+            await nicknameInput.type(this.nickName);
+            this.logger.log(`✍️ Entered nickname: ${this.nickName}`);
+
+            // Find and click submit button
+            let submitButton = null;
+            const buttonSelectors = [
+              'button[type="submit"]',
+              'button',
+              '.button',
+              'input[type="submit"]',
+              '[role="button"]'
+            ];
+
+            for (const selector of buttonSelectors) {
+              submitButton = await page.$(selector);
+              if (submitButton) {
+                this.logger.log(`🖱️ Found button with selector: ${selector}`);
+                break;
+              }
+            }
+
+            if (submitButton) {
+              this.logger.log('🖱️ Clicking join button...');
+              await submitButton.click();
+
+              // Wait for page to load after joining
+              await new Promise(resolve => setTimeout(resolve, 5000));
+              this.logger.log('⏳ Waited for session to load after joining...');
+            } else {
+              this.logger.log('⚠️ Could not find join button, trying Enter key...');
+              await page.keyboard.press('Enter');
+              await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+          } else {
+            this.logger.warn('⚠️ Could not find nickname input field');
+          }
+        } catch (joinError) {
+          this.logger.warn(`⚠️ Error during joining: ${joinError.message}`);
+        }
+      } else {
+        this.logger.log('✅ No nickname required - session already accessible');
+      }
+
+      this.logger.log('⏳ Waiting for queue data to load...');
+
+      // Wait for queue elements to appear
+      try {
+        await page.waitForSelector('[data-draggable="true"]', { timeout: 15000 });
+        this.logger.log('✅ Found draggable queue items with Puppeteer!');
+      } catch (timeoutError) {
+        this.logger.log('⚠️ No draggable items found, continuing with parsing...');
+      }
+
+      // Wait a bit more for any additional loading
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Get the fully rendered HTML
+      const html = await page.content();
+      
+      this.logger.log(`📄 Got ${html.length} characters of rendered HTML from Puppeteer`);
+
+      // Parse the HTML using our existing parsing logic
+      const parseResult = this.extractSingersFromHtml(html);
+
+      // Save session data
+      await this.saveSessionData(sessionId, url, parseResult);
+
+      this.logger.log(`✅ Puppeteer parsing complete: ${parseResult.singers.length} singers, ${parseResult.totalEntries} total entries`);
+
+      return {
+        sessionId,
+        singers: parseResult.singers,
+        songEntries: parseResult.songEntries,
+        unparsedEntries: parseResult.unparsedEntries,
+        totalEntries: parseResult.totalEntries,
+        totalSingers: parseResult.singers.length,
+        lastUpdated: new Date(),
+        pageState: parseResult.pageState,
+        stateMessage: parseResult.stateMessage
+          ? `${parseResult.stateMessage} (Loaded with Puppeteer)`
+          : `Successfully loaded with Puppeteer`,
+        hasCurrentPerformer: parseResult.hasCurrentPerformer,
+      };
+
+    } catch (error) {
+      this.logger.error("❌ Critical error in parseQueueWithPuppeteer:", {
+        error: error.message,
+        stack: error.stack,
+        url,
+        sessionId
+      });
+
+      throw new Error(`Failed to parse with Puppeteer: ${error.message}`);
+    } finally {
+      if (browser) {
+        await browser.close();
+        this.logger.log('🔒 Puppeteer browser closed');
+      }
+    }
+  }
+
+  /**
+   * Helper method to save session data to database
+   */
+  private async saveSessionData(
+    sessionId: string,
+    url: string,
+    parseResult: any
+  ): Promise<void> {
+    try {
+      let sessionEntity = await this.sessionRepository.findOne({
+        where: { sessionId },
+      });
+
+      if (sessionEntity) {
+        sessionEntity.lastUpdated = new Date();
+      } else {
+        sessionEntity = this.sessionRepository.create({
+          sessionId,
+          url,
+          isActive: true,
+          createdAt: new Date(),
+          lastUpdated: new Date(),
+        });
+      }
+
+      if (parseResult.singers.length > 0) {
+        sessionEntity.lastUpdated = new Date();
+      }
+
+      await this.sessionRepository.save(sessionEntity);
+    } catch (error) {
+      this.logger.warn(`Failed to save session data: ${error.message}`);
+    }
+  }
+
+  /**
+   * Extract singers and songs from the HTML response
+   * Provides comprehensive parsing with tracking of unparsed entries and current singer detection
+   */
+  private extractSingersFromHtml(html: string): {
+    singers: KarafunSinger[];
+    songEntries: KarafunSongEntry[];
+    unparsedEntries: string[];
+    totalEntries: number;
+    pageState:
+      | "loading"
+      | "empty"
+      | "populated"
+      | "error"
+      | "nickname-required";
+    stateMessage?: string;
+    hasCurrentPerformer: boolean;
+  } {
+    const singers: KarafunSinger[] = [];
+    const songEntries: KarafunSongEntry[] = [];
+    const unparsedEntries: string[] = [];
+    const uniqueSingers = new Set<string>();
+
+    try {
+      // Check if this is the nickname entry page BUT ALSO if queue data is available
+      // If both nickname form and queue are present, we can parse the queue directly
+      const hasNicknameForm =
+        (html.includes("You are about to join") &&
+          html.includes("What is your Nickname?")) ||
+        html.includes("What is your Nickname") ||
+        html.includes("Enter your nickname") ||
+        (html.includes("nickname") && html.includes("join"));
+
+      const hasQueueData = html.includes("Queue");
+      const hasConnectionLost = html.includes(
+        "connection to the application has been lost"
+      );
+
+      // Check if there are actual queue entries (more reliable than just checking for "Queue" text)
+      const hasSungByEntries =
+        html.includes("Sung by") &&
+        !html.includes("Sung by ${ item.options.singer }");
+      const draggableItems = html.match(/data-draggable="true"/gi) || [];
+      const hasQueueStructure =
+        html.includes("Queue") &&
+        (html.includes("data-draggable") || html.includes("bg-background-02"));
+
+      // If there's a connection lost message but we have queue structure, it might be an empty but active session
+      if (
+        hasConnectionLost &&
+        !hasSungByEntries &&
+        draggableItems.length === 0 &&
+        !hasQueueStructure
+      ) {
+        this.logger.warn(
+          "Detected 'connection lost' message with no queue structure - session appears inactive"
+        );
+        return {
+          singers,
+          songEntries,
+          unparsedEntries,
+          totalEntries: 0,
+          pageState: "error",
+          stateMessage:
+            "Session connection lost. The karaoke application needs to be running with remote control enabled.",
+          hasCurrentPerformer: false,
+        };
+      } else if (hasConnectionLost && hasQueueStructure) {
+        this.logger.log(
+          "Detected 'connection lost' message but queue structure is present - treating as empty but active session"
+        );
+      } else if (
+        hasConnectionLost &&
+        (hasSungByEntries || draggableItems.length > 0)
+      ) {
+        this.logger.log(
+          "Detected 'connection lost' message but queue entries are present - proceeding with parsing"
+        );
+      }
+
+      if (hasNicknameForm && !hasQueueData) {
+        // Only return nickname-required if there's no queue data available
+        this.logger.log(
+          "Detected nickname entry page with no queue data - session requires joining"
+        );
+        return {
+          singers,
+          songEntries,
+          unparsedEntries,
+          totalEntries: 0,
+          pageState: "nickname-required", // Internal state for the service to handle joining
+          stateMessage: "Session requires automatic joining",
+          hasCurrentPerformer: false,
+        };
+      } else if (hasNicknameForm && hasQueueData) {
+        // Both nickname form and queue are present - prioritize parsing the queue
+        this.logger.log(
+          "Detected nickname entry page but queue data is also available - parsing queue directly"
+        );
+        // Continue with normal queue parsing below
+      }
+
+      // Check for Remote Control redirect page (session not running)
+      if (
+        html.includes("Remote Control") &&
+        (html.includes("connection to the application has been lost") ||
+          html.includes("reactivate the remote control feature") ||
+          html.includes("generate the QR code"))
+      ) {
+        this.logger.warn(
+          "Detected Remote Control redirect - session is not active"
+        );
+        return {
+          singers,
+          songEntries,
+          unparsedEntries,
+          totalEntries: 0,
+          pageState: "error",
+          stateMessage:
+            "Session is not currently active. The karaoke application needs to be running with remote control enabled.",
+          hasCurrentPerformer: false,
+        };
+      }
+
+      // Check for other redirect indicators
+      if (
+        html.includes("Access the karaoke session remotely") ||
+        (html.includes("Remote Control") && html.length < 10000)
+      ) {
+        this.logger.warn(
+          "Detected Remote Control landing page - session may not be active"
+        );
+        return {
+          singers,
+          songEntries,
+          unparsedEntries,
+          totalEntries: 0,
+          pageState: "error",
+          stateMessage:
+            "Redirected to Remote Control page. Session may not be active or remote control may be disabled.",
+          hasCurrentPerformer: false,
+        };
+      }
+
+      // Check if we're on a loading or intermediate page (no meaningful content)
+      if (html.length < 500) {
+        this.logger.warn("Page appears to be loading - HTML too short");
+        return {
+          singers,
+          songEntries,
+          unparsedEntries,
+          totalEntries: 0,
+          pageState: "loading",
+          stateMessage: "Page appears to be loading - insufficient content",
+          hasCurrentPerformer: false,
+        };
+      }
+
+      // Check for common loading indicators
+      if (
+        html.includes("Loading") ||
+        html.includes("Please wait") ||
+        html.includes("Redirecting")
+      ) {
+        this.logger.warn("Page contains loading indicators");
+        return {
+          singers,
+          songEntries,
+          unparsedEntries,
+          totalEntries: 0,
+          pageState: "loading",
+          stateMessage: "Page is loading or redirecting",
+          hasCurrentPerformer: false,
+        };
+      }
+
+      if (!html.includes("Queue")) {
+        this.logger.warn(
+          "No 'Queue' text found in HTML - may still be loading"
+        );
+
+        // Log some key indicators to understand what page we're on
+        const hasJavaScript =
+          html.includes("<script") || html.includes("javascript");
+        const hasReact = html.includes("React") || html.includes("__NEXT");
+        const hasKarafun = html.includes("karafun") || html.includes("Karafun");
+        const hasLoading = html.includes("Loading") || html.includes("loading");
+        const hasRemoteControl = html.includes("Remote Control");
+        const hasConnectionLost = html.includes(
+          "connection to the application has been lost"
+        );
+        const hasQRCode = html.includes("QR code") || html.includes("QR Code");
+
+        const bodyContent = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        const bodyText = bodyContent
+          ? bodyContent[1]
+              .replace(/<[^>]*>/g, "")
+              .replace(/\s+/g, " ")
+              .trim()
+          : "";
+
+        this.logger.log(
+          `Page analysis: hasJavaScript=${hasJavaScript}, hasReact=${hasReact}, hasKarafun=${hasKarafun}, hasLoading=${hasLoading}`
+        );
+        this.logger.log(
+          `Remote Control indicators: hasRemoteControl=${hasRemoteControl}, hasConnectionLost=${hasConnectionLost}, hasQRCode=${hasQRCode}`
+        );
+        this.logger.log(
+          `Body content length: ${bodyText.length}, first 200 chars: "${bodyText.substring(0, 200)}"`
+        );
+
+        return {
+          singers,
+          songEntries,
+          unparsedEntries,
+          totalEntries: 0,
+          pageState: "loading",
+          stateMessage:
+            "Queue section not yet loaded - page may be transitioning after join",
+          hasCurrentPerformer: false,
+        };
+      }
+
+      this.logger.log(`HTML content length: ${html.length} characters`);
+      this.logger.log(`Queue text found: ${html.includes("Queue")}`);
+
+      // Look for the word "Queue" first to locate the right section
+      if (!html.includes("Queue")) {
+        this.logger.warn("No 'Queue' text found in HTML");
+        return {
+          singers,
+          songEntries,
+          unparsedEntries,
+          totalEntries: 0,
+          pageState: "empty",
+          stateMessage: "No 'Queue' section found - session may be empty",
+          hasCurrentPerformer: false,
+        };
+      }
+
+      // Find the queue container - start by looking for "Queue" text, then find any container with draggable items
+      this.logger.log("Looking for queue container after finding 'Queue' text");
+
+      // First, try to find the specific bg-background-02 container pattern
+      const queueSectionPattern =
+        /Queue.*?<div[^>]*class="[^"]*bg-background-02[^"]*"[^>]*>(.*?)<\/div>\s*<\/div>/gis;
+      let queueSectionMatch = html.match(queueSectionPattern);
+
+      // If that doesn't work, try a broader pattern that looks for Queue text followed by any container with draggable items
+      if (!queueSectionMatch) {
+        this.logger.warn(
+          "No bg-background-02 container found after Queue, trying broader search"
+        );
+
+        const broadQueuePattern =
+          /Queue[\s\S]*?(<div[\s\S]*?data-draggable="true"[\s\S]*?<\/div>)/gis;
+        const broadMatch = html.match(broadQueuePattern);
+
+        if (broadMatch) {
+          // Extract a larger section around the draggable content
+          const queueIndex = html.indexOf("Queue");
+          const draggableIndex = html.indexOf(
+            'data-draggable="true"',
+            queueIndex
+          );
+
+          if (queueIndex !== -1 && draggableIndex !== -1) {
+            // Get a large section that should contain all the draggable items
+            const startIndex = Math.max(0, queueIndex - 100);
+            const endIndex = Math.min(html.length, draggableIndex + 5000);
+            queueSectionMatch = [html.substring(startIndex, endIndex)];
+            this.logger.log("Using broad queue section extraction");
+          }
+        }
+
+        if (!queueSectionMatch) {
+          this.logger.warn("No queue container found in HTML");
+          return {
+            singers,
+            songEntries,
+            unparsedEntries,
+            totalEntries: 0,
+            pageState: "empty",
+            stateMessage: "No queue container found - session may be empty",
+            hasCurrentPerformer: false,
+          };
+        }
+      }
+
+      // Use the matched queue section or the entire HTML if we're doing a broad search
+      const queueHtml = queueSectionMatch ? queueSectionMatch[0] : html;
+
+      this.logger.log(`Queue HTML length: ${queueHtml.length}`);
+      this.logger.log(`Queue HTML snippet: ${queueHtml.substring(0, 300)}...`);
+
+      // Find all queue items (div with data-draggable="true") - try multiple patterns
+      let items: RegExpMatchArray | null = null;
+
+      // Pattern 1: Complete div with data-draggable="true"
+      const itemPattern1 =
+        /<div[^>]*data-draggable="true"[^>]*>(.*?)<\/div>(?=\s*(?:<div[^>]*data-draggable="true"|<\/div>|$))/gis;
+      items = queueHtml.match(itemPattern1);
+
+      if (!items) {
+        // Pattern 2: Simpler pattern - any div with data-draggable
+        this.logger.log("Trying simpler draggable pattern");
+        const itemPattern2 =
+          /<div[^>]*data-draggable="true"[^>]*>[\s\S]*?<\/div>/gis;
+        items = queueHtml.match(itemPattern2);
+      }
+
+      if (!items) {
+        // Pattern 3: Even simpler - find sections between data-draggable markers
+        this.logger.log("Trying basic data-draggable extraction");
+        const draggablePattern =
+          /data-draggable="true"[^>]*>([\s\S]*?)(?=data-draggable="true"|<\/div>\s*<\/div>|$)/gis;
+        const matches = queueHtml.match(draggablePattern);
+        if (matches) {
+          items = matches.map(
+            (match) => `<div ${match}</div>`
+          ) as RegExpMatchArray;
+        }
+      }
+
+      this.logger.log(`Found ${items ? items.length : 0} data-draggable items`);
+
+      if (items && items.length > 0) {
+        this.logger.log(`First item sample: ${items[0].substring(0, 300)}...`);
+      }
+
+      if (!items || items.length === 0) {
+        // Try a simpler pattern for data-draggable
+        const simpleItemPattern = /data-draggable="true"/gis;
+        const simpleMatches = queueHtml.match(simpleItemPattern);
+        this.logger.warn(
+          `No queue items found with complex pattern. Simple data-draggable count: ${simpleMatches ? simpleMatches.length : 0}`
+        );
+
+        // If we found "Queue" text and data-draggable markers but no complete items,
+        // it might be an empty queue or still loading
+        if (simpleMatches && simpleMatches.length > 0) {
+          this.logger.log(
+            "Found data-draggable markers but no complete items - queue may be empty or still loading"
+          );
+          return {
+            singers,
+            songEntries,
+            unparsedEntries,
+            totalEntries: 0,
+            pageState: "empty",
+            stateMessage:
+              "Queue found but appears to be empty or still loading",
+            hasCurrentPerformer: false,
+          };
+        }
+
+        return {
+          singers,
+          songEntries,
+          unparsedEntries,
+          totalEntries: 0,
+          pageState: "empty",
+          stateMessage: "Queue container found but no songs in queue",
+          hasCurrentPerformer: false,
+        };
+      }
+
+      // Check if there's a current performer (first item in the HTML that's not in the draggable queue)
+      let currentPerformerEntry: KarafunSongEntry | null = null;
+      const currentPerformerPattern =
+        /<div[^>]*class="[^"]*bg-background-02[^"]*"[^>]*>.*?<span[^>]*class="[^"]*text4[^"]*font-bold[^"]*"[^>]*>([^<]+)<\/span>.*?<span[^>]*class="[^"]*text5[^"]*"[^>]*>([^<]+)<\/span>/gis;
+      const currentMatch = html.match(currentPerformerPattern);
+
+      if (currentMatch && currentMatch[0]) {
+        const songMatch = currentMatch[0].match(
+          /<span[^>]*class="[^"]*text4[^"]*font-bold[^"]*"[^>]*>([^<]+)<\/span>/i
+        );
+        const artistMatch = currentMatch[0].match(
+          /<span[^>]*class="[^"]*text5[^"]*"[^>]*>([^<]+)<\/span>/i
+        );
+
+        if (songMatch && artistMatch) {
+          const song = this.cleanSongTitle(songMatch[1]);
+          const artist = artistMatch[1].trim();
+
+          if (song && artist) {
+            currentPerformerEntry = {
+              song,
+              singer: artist,
+              position: 0,
+              isCurrent: true,
+            };
+            songEntries.push(currentPerformerEntry);
+
+            // Don't count the original artist as a karaoke singer
+            if (artist !== "Jerry Lee Lewis") {
+              this.addToUniqueList(uniqueSingers, singers, artist, 0, song);
+            }
+          }
+        }
+      }
+
+      // Process each queue item
+      items.forEach((item, index) => {
+        try {
+          // Extract song title - looking for span with "text-label-title truncate text4" classes
+          const songPattern =
+            /<span[^>]*class="[^"]*text-label-title[^"]*truncate[^"]*text4[^"]*"[^>]*>([^<]+)<\/span>/i;
+          const songMatch = item.match(songPattern);
+
+          // Extract singer - looking for span with "Sung by " text
+          const singerPattern =
+            /<span[^>]*class="[^"]*text-label-subtitle[^"]*truncate[^"]*select-none[^"]*text5[^"]*"[^>]*>\s*Sung by\s+([^<]+)<\/span>/i;
+          const singerMatch = item.match(singerPattern);
+
+          if (songMatch && singerMatch) {
+            const song = this.cleanSongTitle(songMatch[1]);
+            const singer = this.cleanSingerName(singerMatch[1]);
+
+            if (song && singer) {
+              // Skip entries with special markers like "LAST SONG = 9PM" or "START ROTATION>>>"
+              if (this.isSpecialMarker(singer)) {
+                unparsedEntries.push(`${song} - ${singer}`);
+                return;
+              }
+
+              const position = currentPerformerEntry ? index + 2 : index + 1; // Account for current performer
+              this.addSongEntry(songEntries, song, singer, position);
+              this.addToUniqueList(uniqueSingers, singers, singer, position);
+            } else {
+              unparsedEntries.push(
+                `Could not parse: ${songMatch?.[1] || "Unknown"} - ${singerMatch?.[1] || "Unknown"}`
+              );
+            }
+          } else {
+            // If we can't parse the item, add it to unparsed
+            const cleanContent = item
+              .replace(/<[^>]*>/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
+            if (cleanContent.length > 10) {
+              unparsedEntries.push(cleanContent.substring(0, 100));
+            }
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Error parsing queue item ${index}: ${error.message}`
+          );
+          unparsedEntries.push(`Parse error for item ${index + 1}`);
+        }
+      });
+
+      const totalEntries = songEntries.length + unparsedEntries.length;
+      const hasCurrentPerformer = songEntries.some(
+        (entry) => entry.isCurrent === true
+      );
+
+      this.logger.log(
+        `Parsed ${songEntries.length} songs, ${singers.length} unique singers, ${unparsedEntries.length} unparsed entries`
+      );
+
+      return {
+        singers: Array.from(uniqueSingers).map(
+          (nickname) =>
+            singers.find((s) => s.nickname === nickname) || { nickname }
+        ),
+        songEntries,
+        unparsedEntries,
+        totalEntries,
+        pageState: "populated",
+        stateMessage: `Found ${songEntries.length} songs and ${singers.length} singers`,
+        hasCurrentPerformer,
+      };
+    } catch (error) {
+      this.logger.error(`Error in extractSingersFromHtml: ${error.message}`);
+      return {
+        singers,
+        songEntries,
+        unparsedEntries,
+        totalEntries: 0,
+        pageState: "error",
+        stateMessage: `Parse error: ${error.message}`,
+        hasCurrentPerformer: false,
+      };
+    }
+  }
+
+  /**
+   * Check if a singer name is a special marker (not a real singer)
+   */
+  private isSpecialMarker(singer: string): boolean {
+    const specialMarkers = [
+      "LAST SONG",
+      "START ROTATION",
+      "END OF",
+      "BREAK",
+      "INTERMISSION",
+    ];
+
+    const upperSinger = singer.toUpperCase();
+    return specialMarkers.some((marker) => upperSinger.includes(marker));
+  }
+
+  /**
+   * Add singer to unique list with position tracking
+   */
+  private addToUniqueList(
+    uniqueSingers: Set<string>,
+    singers: KarafunSinger[],
+    singerName: string,
+    position: number,
+    currentSong?: string
+  ): void {
+    if (!uniqueSingers.has(singerName)) {
+      uniqueSingers.add(singerName);
+      singers.push({
+        nickname: singerName,
+        position,
+        currentSong,
+        totalSongs: 1,
+      });
+    } else {
+      // Update existing singer's song count
+      const existingSinger = singers.find((s) => s.nickname === singerName);
+      if (existingSinger) {
+        existingSinger.totalSongs = (existingSinger.totalSongs || 0) + 1;
+      }
+    }
+  }
+
+  /**
+   * Clean and validate song title
+   */
+  private cleanSongTitle(title: string): string | null {
+    if (!title) return null;
+
+    const cleaned = title
+      .replace(/<[^>]*>/g, "") // Remove HTML tags
+      .replace(/^\W+|\W+$/g, "") // Remove leading/trailing non-word characters
+      .replace(/\s+/g, " ") // Normalize whitespace
+      .trim();
+
+    // Validate: should be reasonable length and not be "Sung by" or similar
+    if (
+      cleaned.length < 2 ||
+      cleaned.length > 100 ||
+      /^sung\s+by/i.test(cleaned)
+    ) {
+      return null;
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * Clean and validate singer name - handle multi-word names properly
+   */
+  private cleanSingerName(name: string): string | null {
+    if (!name) return null;
+
+    const cleaned = name
+      .replace(/<[^>]*>/g, "") // Remove HTML tags
+      .replace(/[^\w\s\-'\.]/g, " ") // Keep word chars, spaces, hyphens, apostrophes, dots
+      .replace(/\s+/g, " ") // Normalize whitespace
+      .trim();
+
+    // Validate: reasonable length for a name
+    if (cleaned.length < 1 || cleaned.length > 50) {
+      return null;
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * Add a song entry to the list
+   */
+  private addSongEntry(
+    songEntries: KarafunSongEntry[],
+    song: string,
+    singer: string,
+    position: number,
+    isCurrent: boolean = false
+  ): void {
+    songEntries.push({
+      song,
+      singer,
+      position,
+      isCurrent,
+    });
+  }
+
+  /**
+   * Get status of a Karafun session
+   */
+  async getSessionStatus(sessionId: string): Promise<KarafunSessionStatus> {
+    const session = await this.sessionRepository.findOne({
+      where: { sessionId },
+    });
+
+    if (!session) {
+      return {
+        sessionId,
+        isValid: false,
+        singers: [],
+        error: "Session not found",
+      };
+    }
+
+    // For now, return empty singers - could be enhanced to store/retrieve actual data
+    return {
+      sessionId,
+      isValid: session.isActive,
+      singers: [],
+    };
+  }
+
+  /**
+   * Get all active sessions
+   */
+  async getActiveSessions(): Promise<KarafunSession[]> {
+    const sessions = await this.sessionRepository.find({
+      where: { isActive: true },
+      order: { lastUpdated: "DESC" },
+    });
+
+    return sessions.map((session) => ({
+      sessionId: session.sessionId,
+      url: session.url,
+      isActive: session.isActive,
+      createdAt: session.createdAt,
+      lastUpdated: session.lastUpdated,
+    }));
+  }
+
+  /**
+   * Get all sessions (active and inactive) - alias for controller
+   */
+  async getAllSessions(): Promise<KarafunSession[]> {
+    const sessions = await this.sessionRepository.find({
+      order: { lastUpdated: "DESC" },
+    });
+
+    return sessions.map((session) => ({
+      sessionId: session.sessionId,
+      url: session.url,
+      isActive: session.isActive,
+      createdAt: session.createdAt,
+      lastUpdated: session.lastUpdated,
+    }));
+  }
+
+  /**
+   * Remove/deactivate a session
+   */
+  async removeSession(sessionId: string): Promise<boolean> {
+    const session = await this.sessionRepository.findOne({
+      where: { sessionId },
+    });
+
+    if (!session) {
+      return false;
+    }
+
+    session.isActive = false;
+    await this.sessionRepository.save(session);
+    return true;
+  }
+}

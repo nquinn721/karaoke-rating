@@ -34,10 +34,15 @@ import QueueOrderModal from "./QueueOrderModal";
 interface CurrentPerformanceProps {
   showId: string;
   hasUserRated?: boolean;
+  expanded?: boolean;
+  onAccordionChange?: (
+    event: React.SyntheticEvent,
+    isExpanded: boolean
+  ) => void;
 }
 
 const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
-  ({ showId, hasUserRated = false }) => {
+  ({ showId, hasUserRated = false, expanded, onAccordionChange }) => {
     const { showsStore, chatStore, userStore } = rootStore;
 
     const [queueSinger, setQueueSinger] = useState(userStore.username || "");
@@ -80,21 +85,51 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
       null
     );
 
-    // Determine accordion state: closed if user has rating session, otherwise use manual state or default open
-    const addSingerExpanded = hasActiveRatingSession
-      ? false
-      : (manuallyExpanded ?? true);
+    // Determine accordion state: use provided expanded state if available, otherwise use internal logic
+    const addSingerExpanded =
+      expanded !== undefined
+        ? expanded
+        : manuallyExpanded !== null
+          ? manuallyExpanded
+          : hasActiveRatingSession
+            ? false
+            : true;
 
     const queue = useMemo(() => {
       const wsQueue = chatStore.queueByShow.get(showId);
-      return wsQueue || show?.queue || [];
-    }, [chatStore.queueByShow, showId, show?.queue]);
+      const finalQueue = wsQueue || show?.queue || [];
+      return finalQueue;
+    }, [chatStore.queueByShow.get(showId), show?.queue]);
 
-    // Calculate unique singers in the queue
-    const uniqueSingerCount = useMemo(() => {
-      const singers = new Set(queue.map((item: any) => item.singer));
-      return singers.size;
-    }, [queue]);
+    // Order the queue for display based on saved singer order (if any)
+    const orderedQueue = useMemo(() => {
+      const raw = (queue || []) as Array<{ singer: string; song: string }>;
+
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem(`singerOrder:${showId}`) || "[]"
+        );
+        if (Array.isArray(stored) && stored.length) {
+          const rank = new Map<string, number>(
+            stored.map((s: string, i: number) => [s, i])
+          );
+          return raw
+            .map((item, idx) => ({ item, idx }))
+            .sort((a, b) => {
+              const ra = rank.has(a.item.singer)
+                ? (rank.get(a.item.singer) as number)
+                : Number.MAX_SAFE_INTEGER;
+              const rb = rank.has(b.item.singer)
+                ? (rank.get(b.item.singer) as number)
+                : Number.MAX_SAFE_INTEGER;
+              if (ra !== rb) return ra - rb;
+              return a.idx - b.idx; // preserve per-singer internal order
+            })
+            .map((e) => e.item);
+        }
+      } catch {}
+      return raw;
+    }, [queue, showId]);
 
     const [confirmOpen, setConfirmOpen] = useState<{
       open: boolean;
@@ -106,10 +141,14 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
 
     // Manual accordion control (overrides auto behavior when user clicks)
     const handleAccordionChange = (
-      _: React.SyntheticEvent,
+      event: React.SyntheticEvent,
       isExpanded: boolean
     ) => {
-      setManuallyExpanded(isExpanded);
+      if (onAccordionChange) {
+        onAccordionChange(event, isExpanded);
+      } else {
+        setManuallyExpanded(isExpanded);
+      }
     };
 
     const requestRemove = (index: number) =>
@@ -158,9 +197,20 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
     // Generate consistent colors for usernames (same as HistoryPage)
     const getUserColor = (username: string) => {
       const colors = [
-        "#ff6b6b", "#4ecdc4", "#45b7d1", "#f9ca24", "#6c5ce7",
-        "#a29bfe", "#fd79a8", "#00b894", "#e17055", "#74b9ff",
-        "#55a3ff", "#26de81", "#fc5c65", "#fed330"
+        "#ff6b6b",
+        "#4ecdc4",
+        "#45b7d1",
+        "#f9ca24",
+        "#6c5ce7",
+        "#a29bfe",
+        "#fd79a8",
+        "#00b894",
+        "#e17055",
+        "#74b9ff",
+        "#55a3ff",
+        "#26de81",
+        "#fc5c65",
+        "#fed330",
       ];
 
       let hash = 0;
@@ -202,14 +252,21 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
           </AccordionSummary>
           <AccordionDetails>
             {/* Step 1: Add Singer */}
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
               <Typography
                 variant="subtitle2"
                 sx={{ fontWeight: 700, opacity: 0.8 }}
               >
                 1. Add Singer
               </Typography>
-              {uniqueSingerCount > 1 && (
+              {participants.length > 1 && (
                 <Button
                   size="small"
                   variant="outlined"
@@ -313,7 +370,7 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                       singerToUse = newValue.artist;
                     }
                     setQueueSong(newValue.title);
-                    
+
                     // Auto-add to queue when selecting from autocomplete
                     if (singerToUse.trim() && newValue.title.trim()) {
                       try {
@@ -371,7 +428,9 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
 
             {/* Step 2: Queue */}
             <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
+              >
                 <QueueMusicIcon fontSize="small" />
                 <Typography
                   variant="subtitle2"
@@ -397,10 +456,10 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                     borderRadius: 1,
                   }}
                 >
-                  {queue.map((item: any, idx: number) => (
+                  {orderedQueue.map((item: any, idx: number) => (
                     <ListItem
                       key={`${item.singer}-${item.song}-${idx}`}
-                      divider={idx < queue.length - 1}
+                      divider={idx < orderedQueue.length - 1}
                       sx={{
                         pr: { xs: 1, sm: 1 },
                         flexDirection: { xs: "column", sm: "row" },

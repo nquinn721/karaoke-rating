@@ -6,6 +6,7 @@ import AdminPage from "./components/AdminPage";
 import HistoryPage from "./components/HistoryPage";
 import HomePage from "./components/HomePage";
 import ShowPage from "./components/ShowPage";
+import SnackbarProvider from "./components/SnackbarProvider";
 import UsernameModal from "./components/UsernameModal";
 import { rootStore } from "./stores/RootStore";
 
@@ -75,6 +76,9 @@ const App: React.FC = observer(() => {
           <UsernameModal />
         )}
       </Container>
+
+      {/* Global Snackbar Provider */}
+      <SnackbarProvider />
     </Box>
   );
 });

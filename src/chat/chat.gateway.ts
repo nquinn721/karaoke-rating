@@ -318,9 +318,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { showId: string; username?: string; userId?: number }
   ): Promise<void> {
+    console.log(`[DEBUG] Client ${client.id} joining show ${data.showId}`);
+
     // Leave all other joined rooms (auto-leave previous show)
     for (const room of client.rooms) {
       if (room !== client.id && room !== data.showId) {
+        console.log(`[DEBUG] Client ${client.id} leaving room ${room}`);
         client.leave(room);
         await this.handleLeaveRoom(room, client.id);
         // Broadcast globally so all clients update lists
@@ -333,6 +336,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Join the new room and update participants
     client.join(data.showId);
+    console.log(
+      `[DEBUG] Client ${client.id} successfully joined room ${data.showId}`
+    );
 
     // Ensure we have a proper username, prefer DB lookup when userId is provided
     let username = data.username?.trim();

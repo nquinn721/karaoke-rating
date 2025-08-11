@@ -549,7 +549,7 @@ const AdminPage: React.FC = observer(() => {
             </TableHead>
             <TableBody>
               {feedbackStore.feedbackList.map((feedback) => (
-                <TableRow 
+                <TableRow
                   key={feedback.id}
                   onClick={() => {
                     setFeedbackDetailsModal({ open: true, feedback });
@@ -805,13 +805,13 @@ const AdminPage: React.FC = observer(() => {
           },
         }}
       >
-        <DialogTitle 
-          sx={{ 
-            fontWeight: 600, 
+        <DialogTitle
+          sx={{
+            fontWeight: 600,
             borderBottom: "1px solid rgba(255,255,255,0.1)",
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
           Feedback Details
@@ -837,10 +837,15 @@ const AdminPage: React.FC = observer(() => {
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           {feedbackDetailsModal.feedback && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box
+                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}
+              >
                 <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "text.secondary", mb: 0.5 }}
+                  >
                     User
                   </Typography>
                   <Typography variant="body1" sx={{ fontWeight: 500 }}>
@@ -848,70 +853,95 @@ const AdminPage: React.FC = observer(() => {
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "text.secondary", mb: 0.5 }}
+                  >
                     Status
                   </Typography>
                   <Chip
                     size="small"
                     label={feedbackDetailsModal.feedback.status}
                     variant={
-                      feedbackDetailsModal.feedback.status === "resolved" ? "filled" : "outlined"
+                      feedbackDetailsModal.feedback.status === "resolved"
+                        ? "filled"
+                        : "outlined"
                     }
                     color={
-                      feedbackDetailsModal.feedback.status === "resolved" ? "success" : "default"
+                      feedbackDetailsModal.feedback.status === "resolved"
+                        ? "success"
+                        : "default"
                     }
                   />
                 </Box>
               </Box>
-              
+
               <Box>
-                <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", mb: 0.5 }}
+                >
                   Subject
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
                   {feedbackDetailsModal.feedback.subject}
                 </Typography>
               </Box>
-              
+
               <Box>
-                <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", mb: 0.5 }}
+                >
                   Message
                 </Typography>
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
-                    bgcolor: "rgba(255,255,255,0.05)", 
-                    p: 2, 
+                <Typography
+                  variant="body1"
+                  sx={{
+                    bgcolor: "rgba(255,255,255,0.05)",
+                    p: 2,
                     borderRadius: 1,
-                    whiteSpace: "pre-wrap"
+                    whiteSpace: "pre-wrap",
                   }}
                 >
                   {feedbackDetailsModal.feedback.message}
                 </Typography>
               </Box>
-              
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+
+              <Box
+                sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}
+              >
                 <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "text.secondary", mb: 0.5 }}
+                  >
                     Created
                   </Typography>
                   <Typography variant="body1">
-                    {feedbackDetailsModal.feedback.createdAt.toLocaleDateString()} {feedbackDetailsModal.feedback.createdAt.toLocaleTimeString()}
+                    {feedbackDetailsModal.feedback.createdAt.toLocaleDateString()}{" "}
+                    {feedbackDetailsModal.feedback.createdAt.toLocaleTimeString()}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "text.secondary", mb: 0.5 }}
+                  >
                     Last Updated
                   </Typography>
                   <Typography variant="body1">
-                    {feedbackDetailsModal.feedback.updatedAt.toLocaleDateString()} {feedbackDetailsModal.feedback.updatedAt.toLocaleTimeString()}
+                    {feedbackDetailsModal.feedback.updatedAt.toLocaleDateString()}{" "}
+                    {feedbackDetailsModal.feedback.updatedAt.toLocaleTimeString()}
                   </Typography>
                 </Box>
               </Box>
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 1, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+        <DialogActions
+          sx={{ p: 3, pt: 1, borderTop: "1px solid rgba(255,255,255,0.1)" }}
+        >
           <Button
             onClick={() => {
               setFeedbackDetailsModal({ open: false, feedback: null });
@@ -960,25 +990,34 @@ const AdminPage: React.FC = observer(() => {
           },
         }}
       >
-        <DialogTitle 
-          sx={{ 
-            fontWeight: 600, 
+        <DialogTitle
+          sx={{
+            fontWeight: 600,
             borderBottom: "1px solid rgba(255,255,255,0.1)",
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
           Show Details
           {showDetailsModal.show && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1 }}>
               <Chip
                 size="small"
-                label={getShowParticipants(showDetailsModal.show.id).length > 0 ? "Live" : "Inactive"}
-                color={getShowParticipants(showDetailsModal.show.id).length > 0 ? "success" : "default"}
+                label={
+                  getShowParticipants(showDetailsModal.show.id).length > 0
+                    ? "Live"
+                    : "Inactive"
+                }
+                color={
+                  getShowParticipants(showDetailsModal.show.id).length > 0
+                    ? "success"
+                    : "default"
+                }
                 sx={{
                   fontWeight: 600,
-                  ...(getShowParticipants(showDetailsModal.show.id).length > 0 && {
+                  ...(getShowParticipants(showDetailsModal.show.id).length >
+                    0 && {
                     background: "linear-gradient(135deg, #26de81, #20bf6b)",
                     animation: "pulse 2s infinite",
                     "@keyframes pulse": {
@@ -996,10 +1035,10 @@ const AdminPage: React.FC = observer(() => {
                   e.stopPropagation();
                   window.open(`/show/${showDetailsModal.show.id}`, "_blank");
                 }}
-                sx={{ 
+                sx={{
                   borderRadius: 2,
-                  fontSize: '0.75rem',
-                  px: 2
+                  fontSize: "0.75rem",
+                  px: 2,
                 }}
               >
                 View Show
@@ -1009,11 +1048,14 @@ const AdminPage: React.FC = observer(() => {
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           {showDetailsModal.show && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <Box>
-                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary", mb: 0.5 }}
+                    >
                       Show Name
                     </Typography>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -1023,44 +1065,70 @@ const AdminPage: React.FC = observer(() => {
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Box>
-                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary", mb: 0.5 }}
+                    >
                       Show ID
                     </Typography>
-                    <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
+                    <Typography
+                      variant="body1"
+                      sx={{ fontFamily: "monospace" }}
+                    >
                       {showDetailsModal.show.id}
                     </Typography>
                   </Box>
                 </Grid>
               </Grid>
-              
+
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   <Box>
-                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary", mb: 0.5 }}
+                    >
                       Participants
                     </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#4ecdc4' }}>
+                    <Typography
+                      variant="h4"
+                      sx={{ fontWeight: "bold", color: "#4ecdc4" }}
+                    >
                       {getShowParticipants(showDetailsModal.show.id).length}
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <Box>
-                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary", mb: 0.5 }}
+                    >
                       Total Attendees
                     </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#ff6b6b' }}>
+                    <Typography
+                      variant="h4"
+                      sx={{ fontWeight: "bold", color: "#ff6b6b" }}
+                    >
                       {showDetailsModal.show.totalAttendeeCount || 0}
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <Box>
-                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary", mb: 0.5 }}
+                    >
                       Created
                     </Typography>
                     <Typography variant="body1">
-                      {new Date(showDetailsModal.show.createdAt).toLocaleDateString()} {new Date(showDetailsModal.show.createdAt).toLocaleTimeString()}
+                      {new Date(
+                        showDetailsModal.show.createdAt
+                      ).toLocaleDateString()}{" "}
+                      {new Date(
+                        showDetailsModal.show.createdAt
+                      ).toLocaleTimeString()}
                     </Typography>
                   </Box>
                 </Grid>
@@ -1071,30 +1139,34 @@ const AdminPage: React.FC = observer(() => {
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                   Current Performance
                 </Typography>
-                {showDetailsModal.show.currentSinger && showDetailsModal.show.currentSong ? (
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: "rgba(255,255,255,0.05)", 
+                {showDetailsModal.show.currentSinger &&
+                showDetailsModal.show.currentSong ? (
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: "rgba(255,255,255,0.05)",
                       borderRadius: 2,
-                      border: "1px solid rgba(255,255,255,0.1)"
+                      border: "1px solid rgba(255,255,255,0.1)",
                     }}
                   >
                     <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                       {showDetailsModal.show.currentSinger}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                    <Typography
+                      variant="body1"
+                      sx={{ color: "text.secondary" }}
+                    >
                       "{showDetailsModal.show.currentSong}"
                     </Typography>
                   </Box>
                 ) : (
                   <Typography
                     variant="body1"
-                    sx={{ 
+                    sx={{
                       color: "text.secondary",
-                      fontStyle: 'italic',
-                      textAlign: 'center',
-                      py: 2
+                      fontStyle: "italic",
+                      textAlign: "center",
+                      py: 2,
                     }}
                   >
                     No current performance
@@ -1108,37 +1180,39 @@ const AdminPage: React.FC = observer(() => {
                   Active Participants
                 </Typography>
                 {getShowParticipants(showDetailsModal.show.id).length > 0 ? (
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      flexWrap: 'wrap', 
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
                       gap: 1,
-                      p: 2, 
-                      bgcolor: "rgba(255,255,255,0.05)", 
+                      p: 2,
+                      bgcolor: "rgba(255,255,255,0.05)",
                       borderRadius: 2,
-                      border: "1px solid rgba(255,255,255,0.1)"
+                      border: "1px solid rgba(255,255,255,0.1)",
                     }}
                   >
-                    {getShowParticipants(showDetailsModal.show.id).map((participant, index) => (
-                      <Chip
-                        key={index}
-                        label={participant}
-                        sx={{
-                          bgcolor: "rgba(78, 205, 196, 0.2)",
-                          color: "#4ecdc4",
-                          fontWeight: 600,
-                        }}
-                      />
-                    ))}
+                    {getShowParticipants(showDetailsModal.show.id).map(
+                      (participant, index) => (
+                        <Chip
+                          key={index}
+                          label={participant}
+                          sx={{
+                            bgcolor: "rgba(78, 205, 196, 0.2)",
+                            color: "#4ecdc4",
+                            fontWeight: 600,
+                          }}
+                        />
+                      )
+                    )}
                   </Box>
                 ) : (
                   <Typography
                     variant="body1"
-                    sx={{ 
+                    sx={{
                       color: "text.secondary",
-                      fontStyle: 'italic',
-                      textAlign: 'center',
-                      py: 2
+                      fontStyle: "italic",
+                      textAlign: "center",
+                      py: 2,
                     }}
                   >
                     No active participants
@@ -1148,7 +1222,9 @@ const AdminPage: React.FC = observer(() => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 1, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+        <DialogActions
+          sx={{ p: 3, pt: 1, borderTop: "1px solid rgba(255,255,255,0.1)" }}
+        >
           <Button
             onClick={() => {
               setShowDetailsModal({ open: false, show: null });
@@ -1161,7 +1237,10 @@ const AdminPage: React.FC = observer(() => {
             color="error"
             onClick={() => {
               if (showDetailsModal.show) {
-                handleDeleteClick(showDetailsModal.show.id, showDetailsModal.show.name);
+                handleDeleteClick(
+                  showDetailsModal.show.id,
+                  showDetailsModal.show.name
+                );
                 setShowDetailsModal({ open: false, show: null });
               }
             }}

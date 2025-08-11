@@ -99,4 +99,29 @@ export class UserController {
     const history = await this.userService.getUserHistory(user.id);
     return { success: true, history };
   }
+
+  @Put("update-karafun-name")
+  async updateKarafunName(
+    @Body() body: { username: string; karafunName: string }
+  ) {
+    if (!body.username || body.username.trim().length === 0) {
+      return { success: false, message: "Username is required" };
+    }
+
+    if (!body.karafunName || body.karafunName.trim().length === 0) {
+      return { success: false, message: "Karafun name is required" };
+    }
+
+    const result = await this.userService.updateKarafunName(
+      body.username.trim(),
+      body.karafunName.trim()
+    );
+    return result;
+  }
+
+  @Get(":username/karafun-name")
+  async getUserKarafunName(@Param("username") username: string) {
+    const karafunName = await this.userService.getUserKarafunName(username);
+    return { success: true, karafunName };
+  }
 }

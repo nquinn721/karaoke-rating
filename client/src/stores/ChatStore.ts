@@ -8,6 +8,7 @@ export class ChatStore {
   socket: Socket | null = null;
   connected: boolean = false;
   private baseAPI: BaseAPIStore;
+  private rootStore?: any; // Reference to root store for snackbar
   // track current show
   currentShowId: string | null = null;
   // participants per show from websocket updates (observable map)
@@ -22,9 +23,10 @@ export class ChatStore {
     { singer?: string; song?: string }
   >([]);
 
-  constructor(baseAPI: BaseAPIStore) {
+  constructor(baseAPI: BaseAPIStore, rootStore?: any) {
     makeAutoObservable(this);
     this.baseAPI = baseAPI;
+    this.rootStore = rootStore;
   }
 
   initializeSocket() {
@@ -57,8 +59,7 @@ export class ChatStore {
     });
 
     // Handle authentication success
-    this.socket.on("authSuccess", (data: { user: any }) => {
-      console.log("Socket authentication successful:", data.user);
+    this.socket.on("authSuccess", () => {
       // User is now authenticated on the socket connection
     });
 
@@ -125,9 +126,51 @@ export class ChatStore {
         queue: { singer: string; song: string }[];
       }) => {
         console.log(`[DEBUG] Received queueUpdated for show ${showId}:`, queue);
+        console.log(
+          `[DEBUG] Current queueByShow Map before update:`,
+          this.queueByShow
+        );
+        console.log(
+          `[DEBUG] Current queueByShow keys:`,
+          Array.from(this.queueByShow.keys())
+        );
+
+        const previousQueue = this.queueByShow.get(showId) || [];
+        const newQueue = Array.isArray(queue) ? queue : [];
+
+        // Check for new songs added by comparing queue lengths and content
+        if (
+          newQueue.length > previousQueue.length &&
+          this.rootStore?.snackbarStore
+        ) {
+          const newSongs = newQueue.slice(previousQueue.length);
+          // Get current username to avoid showing notifications for own additions
+          const currentUsername = this.rootStore.userStore?.username;
+
+          // Show notifications for songs added by others
+          newSongs.forEach((newSong) => {
+            if (newSong.singer !== currentUsername) {
+              this.rootStore.snackbarStore.showInfo(
+                `🎤 ${newSong.singer} added "${newSong.song}" to queue`
+              );
+            }
+          });
+        }
+
         runInAction(() => {
-          this.queueByShow.set(showId, Array.isArray(queue) ? queue : []);
-          console.log(`[DEBUG] Updated queueByShow for show ${showId}:`, this.queueByShow.get(showId));
+          this.queueByShow.set(showId, newQueue);
+          console.log(
+            `[DEBUG] Updated queueByShow for show ${showId}:`,
+            this.queueByShow.get(showId)
+          );
+          console.log(
+            `[DEBUG] queueByShow Map after update:`,
+            this.queueByShow
+          );
+          console.log(
+            `[DEBUG] queueByShow keys after update:`,
+            Array.from(this.queueByShow.keys())
+          );
         });
       }
     );
@@ -185,14 +228,28 @@ export class ChatStore {
   }
 
   joinShow(showId: string, username: string) {
-    if (!this.socket) return;
+    if (!this.socket) {
+      console.log(`[DEBUG] ChatStore.joinShow called but socket is null`);
+      return;
+    }
 
     const userJson = localStorage.getItem("user_data");
     const user = userJson ? JSON.parse(userJson) : null;
     const userId = user?.id;
 
+    console.log(
+      `[DEBUG] ChatStore.joinShow called with showId: ${showId}, username: ${username}`
+    );
+    console.log(`[DEBUG] User data from localStorage:`, user);
+    console.log(`[DEBUG] Socket connected:`, this.socket.connected);
+
     this.socket.emit(
       "joinShow",
+      userId ? { showId, userId } : { showId, username }
+    );
+
+    console.log(
+      `[DEBUG] Emitted joinShow event with data:`,
       userId ? { showId, userId } : { showId, username }
     );
   }

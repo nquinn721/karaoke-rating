@@ -25,6 +25,9 @@ export class User {
   @Column({ type: "boolean", default: false })
   isLoggedIn: boolean; // Whether user is currently logged in
 
+  @Column({ type: "varchar", length: 100, nullable: true })
+  karafunName: string; // User's name in the Karafun queue system
+
   @CreateDateColumn()
   createdAt: Date;
 

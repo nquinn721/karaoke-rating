@@ -147,6 +147,20 @@ export class BaseAPIStore {
     }
   }
 
+  // PUT request
+  async put<T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+  ): Promise<T> {
+    try {
+      const response: AxiosResponse<T> = await this.api.put(url, data, config);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // DELETE request
   async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
     try {

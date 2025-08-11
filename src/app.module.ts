@@ -8,6 +8,7 @@ import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
 import { ChatModule } from "./chat/chat.module";
 import { FeedbackModule } from "./feedback/feedback.module";
+import { KarafunModule } from "./karafun/karafun.module";
 import { MusicModule } from "./music/music.module";
 import { RatingModule } from "./rating/rating.module";
 import { SchedulerModule } from "./scheduler/scheduler.module";
@@ -17,7 +18,6 @@ import { UserModule } from "./user/user.module";
 import { Feedback } from "./feedback/entities/feedback.entity";
 import { Rating } from "./rating/entities/rating.entity";
 import { Show } from "./shows/entities/show.entity";
-import { UserSession } from "./user/entities/user-session.entity";
 import { User } from "./user/entities/user.entity";
 
 @Module({
@@ -42,7 +42,7 @@ import { User } from "./user/entities/user.entity";
       username: process.env.DB_USERNAME || "admin",
       password: process.env.DB_PASSWORD || "password",
       database: process.env.DB_DATABASE || "karaoke",
-      entities: [User, Show, Rating, Feedback, UserSession], // Database entities
+      entities: [User, Show, Rating, Feedback], // Database entities
       synchronize: true, // Enable sync for production to create tables
       ssl: process.env.NODE_ENV === "production" ? false : false, // No SSL needed for Unix socket
     }),
@@ -62,6 +62,7 @@ import { User } from "./user/entities/user.entity";
     AuthModule,
     FeedbackModule,
     MusicModule,
+    KarafunModule,
     SchedulerModule, // Add scheduler module
   ],
   controllers: [AppController],

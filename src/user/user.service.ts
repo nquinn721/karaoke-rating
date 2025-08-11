@@ -288,4 +288,43 @@ export class UserService {
     await this.setUserLoggedIn(user.id, isLoggedIn);
     return { ...user, isLoggedIn };
   }
+
+  async updateKarafunName(
+    username: string,
+    karafunName: string
+  ): Promise<{ success: boolean; message: string; user?: any }> {
+    const user = await this.userRepository.findOne({
+      where: { username },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found",
+      };
+    }
+
+    user.karafunName = karafunName;
+    const updatedUser = await this.userRepository.save(user);
+
+    return {
+      success: true,
+      message: "Karafun name updated successfully",
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        karafunName: updatedUser.karafunName,
+        createdAt: updatedUser.createdAt,
+        isAdmin: updatedUser.isAdmin,
+      },
+    };
+  }
+
+  async getUserKarafunName(username: string): Promise<string | null> {
+    const user = await this.userRepository.findOne({
+      where: { username },
+    });
+
+    return user?.karafunName || null;
+  }
 }

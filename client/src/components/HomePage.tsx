@@ -1,8 +1,4 @@
-import {
-  Add as AddIcon,
-  Mic as MicIcon,
-  QrCodeScanner as QrCodeScannerIcon,
-} from "@mui/icons-material";
+import { Add as AddIcon, Mic as MicIcon } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -19,8 +15,6 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from "@mui/material";
@@ -30,7 +24,6 @@ import { useNavigate } from "react-router-dom";
 import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 import { rootStore } from "../stores/RootStore";
 import { ChangeUsernameModal } from "./ChangeUsernameModal";
-import QRScanner from "./QRScanner";
 import UserMenu from "./UserMenu";
 
 const HomePage: React.FC = observer(() => {
@@ -38,7 +31,6 @@ const HomePage: React.FC = observer(() => {
   const navigate = useNavigate();
   const showNameInputRef = useRef<HTMLInputElement>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [addModalTab, setAddModalTab] = useState(0);
   const [newShowName, setNewShowName] = useState("");
   const [newShowVenue, setNewShowVenue] = useState<
     "karafun" | "excess" | "dj steve"
@@ -85,18 +77,15 @@ const HomePage: React.FC = observer(() => {
     }
   };
 
-  const handleOpenAddModal = (tab: number = 0) => {
-    setAddModalTab(tab);
+  const handleOpenAddModal = () => {
     setAddModalOpen(true);
 
-    // Focus the show name input after modal opens (only for create new tab)
-    if (tab === 0) {
-      setTimeout(() => {
-        if (showNameInputRef.current) {
-          showNameInputRef.current.focus();
-        }
-      }, 100);
-    }
+    // Focus the show name input after modal opens
+    setTimeout(() => {
+      if (showNameInputRef.current) {
+        showNameInputRef.current.focus();
+      }
+    }, 100);
   };
 
   const handleJoinShow = async (showId: string) => {
@@ -109,12 +98,6 @@ const HomePage: React.FC = observer(() => {
     } catch (error) {
       console.error("Failed to join show:", error);
     }
-  };
-
-  const handleQRScanned = (data: string) => {
-    // Assuming QR code contains show ID
-    handleJoinShow(data);
-    setAddModalOpen(false);
   };
 
   // Generate consistent colors for usernames
@@ -241,16 +224,9 @@ const HomePage: React.FC = observer(() => {
               >
                 <Button
                   variant="contained"
-                  onClick={() => handleOpenAddModal(0)}
+                  onClick={() => handleOpenAddModal()}
                 >
                   Create a Show
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<QrCodeScannerIcon />}
-                  onClick={() => handleOpenAddModal(1)}
-                >
-                  Join by QR
                 </Button>
               </Box>
             </CardContent>
@@ -352,7 +328,7 @@ const HomePage: React.FC = observer(() => {
           right: { xs: 20, sm: 16 },
           zIndex: 1000,
         }}
-        onClick={() => handleOpenAddModal(0)}
+        onClick={() => handleOpenAddModal()}
       >
         <AddIcon />
       </Fab>
@@ -366,63 +342,45 @@ const HomePage: React.FC = observer(() => {
       >
         <DialogTitle>Add Show</DialogTitle>
         <DialogContent>
-          <Tabs
-            value={addModalTab}
-            onChange={(_, newValue) => setAddModalTab(newValue)}
-          >
-            <Tab label="Create New" />
-            <Tab label="Join by QR" />
-          </Tabs>
-
-          {addModalTab === 0 && (
-            <Box sx={{ mt: 2 }}>
-              <TextField
-                inputRef={showNameInputRef}
-                fullWidth
-                label="Show Name"
-                value={newShowName}
-                onChange={(e) => setNewShowName(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" && newShowName.trim()) {
-                    e.preventDefault();
-                    handleCreateShow();
-                  }
-                }}
-                sx={{ mb: 2 }}
-                autoFocus
-              />
-              <FormControl fullWidth>
-                <InputLabel>Venue</InputLabel>
-                <Select
-                  value={newShowVenue}
-                  label="Venue"
-                  onChange={(e) => setNewShowVenue(e.target.value as any)}
-                >
-                  <MenuItem value="karafun">KaraFun</MenuItem>
-                  <MenuItem value="excess">Excess</MenuItem>
-                  <MenuItem value="dj steve">DJ Steve</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          )}
-
-          {addModalTab === 1 && (
-            <Box sx={{ mt: 2 }}>
-              <QRScanner onScan={handleQRScanned} />
-            </Box>
-          )}
+          <Box sx={{ mt: 2 }}>
+            <TextField
+              inputRef={showNameInputRef}
+              fullWidth
+              label="Show Name"
+              value={newShowName}
+              onChange={(e) => setNewShowName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && newShowName.trim()) {
+                  e.preventDefault();
+                  handleCreateShow();
+                }
+              }}
+              sx={{ mb: 2 }}
+              autoFocus
+            />
+            <FormControl fullWidth>
+              <InputLabel>Venue</InputLabel>
+              <Select
+                value={newShowVenue}
+                label="Venue"
+                onChange={(e) => setNewShowVenue(e.target.value as any)}
+              >
+                <MenuItem value="karafun">KaraFun</MenuItem>
+                <MenuItem value="excess">Excess</MenuItem>
+                <MenuItem value="dj steve">DJ Steve</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddModalOpen(false)}>Cancel</Button>
-          {addModalTab === 0 && (
-            <Button
-              onClick={handleCreateShow}
-              variant="contained"
-              disabled={!newShowName.trim()}
-            >
-              Create Show
-            </Button>
-          )}
+          <Button
+            onClick={handleCreateShow}
+            variant="contained"
+            disabled={!newShowName.trim()}
+          >
+            Create Show
+          </Button>
         </DialogActions>
       </Dialog>
 

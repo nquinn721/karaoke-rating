@@ -14,7 +14,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   DragIndicator as DragIndicatorIcon,
-  MusicNote as MusicNoteIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
 import {
@@ -182,7 +181,7 @@ const SortableSingerGroup: React.FC<SortableSingerGroupProps> = ({
               </Typography>
               <Chip
                 size="small"
-                label={`${singerGroup.totalSongs} song${singerGroup.totalSongs !== 1 ? 's' : ''}`}
+                label={`${singerGroup.totalSongs} song${singerGroup.totalSongs !== 1 ? "s" : ""}`}
                 sx={{
                   fontSize: "0.7rem",
                   height: 20,
@@ -190,40 +189,6 @@ const SortableSingerGroup: React.FC<SortableSingerGroupProps> = ({
                   color: "#4ecdc4",
                 }}
               />
-            </Box>
-            
-            {/* Songs List */}
-            <Box sx={{ ml: 3 }}>
-              {singerGroup.songs.map((song, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    mb: index < singerGroup.songs.length - 1 ? 0.5 : 0,
-                  }}
-                >
-                  <MusicNoteIcon 
-                    fontSize="small" 
-                    sx={{ 
-                      color: "text.secondary", 
-                      fontSize: "0.9rem" 
-                    }} 
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "text.secondary",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {song}
-                  </Typography>
-                </Box>
-              ))}
             </Box>
           </Box>
         </Box>
@@ -243,28 +208,49 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
   ({ open, onClose, showId, getUserColor }) => {
     const { showsStore, chatStore } = rootStore;
 
-    // Group queue items by singer
+    // Group queue items by singer, ensuring ALL show participants are included
     const singerGroups = React.useMemo(() => {
       const wsQueue = chatStore.queueByShow.get(showId);
       const queue = wsQueue || showsStore.currentShow?.queue || [];
-      
-      // Group songs by singer
-      const grouped = new Map<string, string[]>();
+
+      // Collect participants from WS and API (fallback), plus any singers from queue
+      const wsParticipants = chatStore.participantsByShow.get(showId) || [];
+      const apiParticipants = showsStore.currentShow?.participants || [];
+      const queueSingers = Array.from(
+        new Set(queue.map((i: any) => i.singer).filter(Boolean))
+      );
+      const allSingers = Array.from(
+        new Set(
+          [...wsParticipants, ...apiParticipants, ...queueSingers].filter(
+            Boolean
+          )
+        )
+      );
+
+      // Build songs per singer from the latest queue
+      const songsMap = new Map<string, string[]>();
       queue.forEach((item: any) => {
-        if (!grouped.has(item.singer)) {
-          grouped.set(item.singer, []);
-        }
-        grouped.get(item.singer)!.push(item.song);
+        if (!songsMap.has(item.singer)) songsMap.set(item.singer, []);
+        songsMap.get(item.singer)!.push(item.song);
       });
 
-      // Convert to SingerGroup array
-      return Array.from(grouped.entries()).map(([singer, songs], index) => ({
-        id: `singer-${singer}-${index}`,
-        singer,
-        songs,
-        totalSongs: songs.length,
-      }));
-    }, [chatStore.queueByShow, showId, showsStore.currentShow?.queue]);
+      // Return a group for every singer in the show (even if they have 0 songs)
+      return allSingers.map((singer, index) => {
+        const songs = songsMap.get(singer) || [];
+        return {
+          id: `singer-${singer}-${index}`,
+          singer,
+          songs,
+          totalSongs: songs.length,
+        } as SingerGroup;
+      });
+    }, [
+      chatStore.queueByShow.get(showId),
+      chatStore.participantsByShow.get(showId),
+      showsStore.currentShow?.queue,
+      showsStore.currentShow?.participants,
+      showId,
+    ]);
 
     const [orderedSingers, setOrderedSingers] = useState<SingerGroup[]>([]);
     const [hasChanges, setHasChanges] = useState(false);
@@ -290,7 +276,9 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
 
       if (over && active.id !== over.id) {
         setOrderedSingers((singers) => {
-          const oldIndex = singers.findIndex((singer) => singer.id === active.id);
+          const oldIndex = singers.findIndex(
+            (singer) => singer.id === active.id
+          );
           const newIndex = singers.findIndex((singer) => singer.id === over.id);
 
           const newOrder = arrayMove(singers, oldIndex, newIndex);
@@ -302,17 +290,38 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
 
     const handleSave = async () => {
       try {
-        // Convert singer groups back to flat queue
-        const reorderedQueue: any[] = [];
-        orderedSingers.forEach((singerGroup) => {
-          singerGroup.songs.forEach((song) => {
-            reorderedQueue.push({
-              singer: singerGroup.singer,
-              song: song,
-            });
-          });
-        });
-        
+        // Use the latest queue and perform a stable sort by the selected singer order
+        const wsQueue = chatStore.queueByShow.get(showId);
+        const latestQueue: { singer: string; song: string }[] = (wsQueue ||
+          showsStore.currentShow?.queue ||
+          []) as any[];
+
+        // Rank singers by their order in the UI
+        const rank = new Map<string, number>(
+          orderedSingers.map((g, i) => [g.singer, i])
+        );
+
+        // Persist singer order for this show (used by CurrentPerformance)
+        localStorage.setItem(
+          `singerOrder:${showId}`,
+          JSON.stringify(orderedSingers.map((g) => g.singer))
+        );
+
+        // Stable sort by singer rank, preserving each singer's internal song order
+        const reorderedQueue = latestQueue
+          .map((item, idx) => ({ item, idx }))
+          .sort((a, b) => {
+            const ra = rank.has(a.item.singer)
+              ? (rank.get(a.item.singer) as number)
+              : Number.MAX_SAFE_INTEGER;
+            const rb = rank.has(b.item.singer)
+              ? (rank.get(b.item.singer) as number)
+              : Number.MAX_SAFE_INTEGER;
+            if (ra !== rb) return ra - rb;
+            return a.idx - b.idx; // preserve original order for same singer
+          })
+          .map((e) => e.item);
+
         await showsStore.reorderQueue(showId, reorderedQueue);
         setHasChanges(false);
         onClose();
@@ -356,7 +365,10 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
       );
     }
 
-    const totalSongs = singerGroups.reduce((sum, group) => sum + group.totalSongs, 0);
+    const totalSongs = singerGroups.reduce(
+      (sum, group) => sum + group.totalSongs,
+      0
+    );
 
     return (
       <Dialog
@@ -392,7 +404,8 @@ const QueueOrderModal: React.FC<QueueOrderModalProps> = observer(
               Order Singers
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Drag singers to reorder • {orderedSingers.length} singers • {totalSongs} songs
+              Drag singers to reorder • {orderedSingers.length} singers •{" "}
+              {totalSongs} songs
             </Typography>
           </Box>
         </DialogTitle>

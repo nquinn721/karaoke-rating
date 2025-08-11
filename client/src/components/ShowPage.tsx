@@ -33,13 +33,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 import { rootStore } from "../stores/RootStore";
 import CurrentPerformance from "./CurrentPerformance";
+import KarafunAccordion from "./KarafunAccordion";
 import RatingsTab from "./RatingsTab";
 import UserMenu from "./UserMenu";
 
 const ShowPage: React.FC = observer(() => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { showsStore, chatStore, userStore } = rootStore;
+  const { showsStore, chatStore, userStore, karafunStore } = rootStore;
   const [activeTab, setActiveTab] = useState(0);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -66,11 +67,18 @@ const ShowPage: React.FC = observer(() => {
   const [ratingSnackbarOpen, setRatingSnackbarOpen] = useState(false);
   const [ratingSnackbarMessage, setRatingSnackbarMessage] = useState("");
 
+  // Karafun accordion state
+  const [karafunAccordionExpanded, setKarafunAccordionExpanded] =
+    useState(true);
+
   useEffect(() => {
     if (id) {
       showsStore.fetchShow(id);
       // Socket is already initialized in RootStore
       chatStore.joinShow(id, userStore.username);
+
+      // Load cached Karafun data if it exists
+      karafunStore.loadCachedData(id);
 
       // Initialize read message count to current count on component mount
       setLastReadMessageCount(chatStore.messages.length);
@@ -112,9 +120,60 @@ const ShowPage: React.FC = observer(() => {
     navigate("/");
   };
 
+  // Detect new participants joining and show toast
+  const currentParticipants =
+    (id &&
+      (chatStore.participantsByShow.get(id) ??
+        showsStore.currentShow?.participants)) ||
+    [];
+
+  // Helper function to check if current show is a Karafun venue
+  const isKarafunShow = () => {
+    return showsStore.currentShow?.venue?.toLowerCase() === "karafun";
+  };
+
   // Prefer live current performer from sockets
   const currentPerformer = useMemo(() => {
     const live = id ? chatStore.currentPerformerByShow.get(id) : undefined;
+
+    // For Karafun shows, validate that the performer is a registered user
+    if (isKarafunShow()) {
+      // Get the first performer from Karafun queue data
+      const firstKarafunSong = karafunStore.songEntries.find(
+        (entry) => entry.position === 1
+      );
+
+      if (firstKarafunSong) {
+        // Check if the Karafun nickname matches any of our registered users
+        const karafunNickname = firstKarafunSong.singer;
+
+        // Get list of participants (registered users in this show)
+        const registeredUsers = Array.isArray(currentParticipants)
+          ? currentParticipants
+          : [];
+
+        // Only allow rating if the Karafun nickname is one of our registered users
+        const isRegisteredUser = registeredUsers.includes(karafunNickname);
+
+        if (isRegisteredUser) {
+          return {
+            singer: karafunNickname,
+            song: firstKarafunSong.song,
+          };
+        } else {
+          // Karafun performer is not a registered user - no rating allowed
+          console.log(
+            `🚫 Karafun performer "${karafunNickname}" is not a registered user, skipping rating`
+          );
+          return { singer: undefined, song: undefined };
+        }
+      }
+
+      // No valid Karafun performer found
+      return { singer: undefined, song: undefined };
+    }
+
+    // For non-Karafun shows, use the original logic
     return {
       singer: live?.singer ?? showsStore.currentShow?.currentSinger,
       song: live?.song ?? showsStore.currentShow?.currentSong,
@@ -125,14 +184,11 @@ const ShowPage: React.FC = observer(() => {
     id ? chatStore.currentPerformerByShow.get(id) : undefined,
     showsStore.currentShow?.currentSinger,
     showsStore.currentShow?.currentSong,
+    showsStore.currentShow?.venue,
+    karafunStore.songEntries,
+    currentParticipants,
   ]);
 
-  // Detect new participants joining and show toast
-  const currentParticipants =
-    (id &&
-      (chatStore.participantsByShow.get(id) ??
-        showsStore.currentShow?.participants)) ||
-    [];
   useEffect(() => {
     const list = Array.isArray(currentParticipants) ? currentParticipants : [];
     const currSet = new Set(list);
@@ -466,6 +522,53 @@ const ShowPage: React.FC = observer(() => {
           {/* Current Performance Section */}
           <CurrentPerformance showId={id || ""} hasUserRated={hasUserRated} />
 
+          {/* Karafun Queue - show for Karafun venues above rating section */}
+          {isKarafunShow() && (
+            <KarafunAccordion
+              showId={id || ""}
+              expanded={karafunAccordionExpanded}
+              onAccordionChange={(_, isExpanded) =>
+                setKarafunAccordionExpanded(isExpanded)
+              }
+            />
+          )}
+
+          {/* Show message for Karafun performers who aren't registered users */}
+          {isKarafunShow() &&
+            karafunStore.songEntries.length > 0 &&
+            karafunStore.songEntries.find((entry) => entry.position === 1) &&
+            !currentPerformer.singer && (
+              <Paper
+                sx={{
+                  p: 2,
+                  mb: 3,
+                  backgroundColor: "rgba(255, 193, 7, 0.1)",
+                  border: "1px solid rgba(255, 193, 7, 0.3)",
+                  borderRadius: 2,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="h6" sx={{ color: "#ffc107" }}>
+                    ⚠️ Current Performer Not Registered
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", mt: 1 }}
+                >
+                  "
+                  {
+                    karafunStore.songEntries.find(
+                      (entry) => entry.position === 1
+                    )?.singer
+                  }
+                  " is currently performing, but they are not a registered user
+                  in this show. You can only rate performances by registered
+                  users.
+                </Typography>
+              </Paper>
+            )}
+
           {/* Show message if user has already rated */}
           {currentPerformer.singer &&
             currentPerformer.singer !== userStore.username &&
@@ -602,6 +705,27 @@ const ShowPage: React.FC = observer(() => {
                 </AccordionDetails>
               </Accordion>
             )}
+
+          {/* Queue Management - only show for non-Karafun venues */}
+          {!isKarafunShow() && (
+            <Paper
+              sx={{
+                p: 2,
+                mb: 3,
+                backgroundColor: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Queue Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Queue management features will be available here for non-Karafun
+                shows.
+              </Typography>
+            </Paper>
+          )}
         </Box>
       )}
 

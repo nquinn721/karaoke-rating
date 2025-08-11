@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { AdminGuard } from "../auth/admin.guard";
@@ -18,6 +19,7 @@ import {
   Rating,
   Show,
   UpdateCurrentPerformerDto,
+  UpdateKarafunUrlDto,
 } from "./shows.interface";
 import { ShowsService } from "./shows.service";
 
@@ -94,9 +96,20 @@ export class ShowsController {
   @Delete(":id/queue/item")
   async removeQueueItem(
     @Param("id") id: string,
-    @Body() body: { index: number }
+    @Body() body: { index?: number },
+    @Query("index") indexQuery?: string
   ): Promise<Show | undefined> {
-    return this.showsService.removeQueueItem(id, body.index);
+    const index =
+      typeof body?.index === "number"
+        ? body.index
+        : indexQuery !== undefined
+          ? parseInt(indexQuery, 10)
+          : NaN;
+    if (Number.isNaN(index)) {
+      // If index is missing or invalid, just return current show
+      return this.showsService.getShow(id);
+    }
+    return this.showsService.removeQueueItem(id, index);
   }
 
   @Delete(":id/queue/by-singer")
@@ -110,9 +123,27 @@ export class ShowsController {
   @Patch(":id/queue/reorder")
   async reorderQueue(
     @Param("id") id: string,
-    @Body() body: { queue: QueueItem[] }
+    @Body() body: { queue: QueueItem[]; singerOrder?: string[] }
   ): Promise<Show | undefined> {
-    return this.showsService.reorderQueue(id, body.queue);
+    return this.showsService.reorderQueue(id, body.queue, body.singerOrder);
+  }
+
+  @Patch(":id/karafun-url")
+  async updateKarafunUrl(
+    @Param("id") id: string,
+    @Body() body: UpdateKarafunUrlDto
+  ): Promise<Show | undefined> {
+    return this.showsService.updateKarafunUrl(id, body.karafunUrl);
+  }
+
+  @Get(":id/karafun-queue")
+  async getKarafunQueue(@Param("id") id: string): Promise<any> {
+    return this.showsService.getKarafunQueue(id);
+  }
+
+  @Post(":id/karafun-queue/refresh")
+  async refreshKarafunQueue(@Param("id") id: string): Promise<any> {
+    return this.showsService.refreshKarafunQueue(id);
   }
 
   @Post("admin/invalidate-all")

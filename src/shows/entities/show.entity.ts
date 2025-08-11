@@ -37,6 +37,22 @@ export class Show {
   @Column({ default: true })
   isValid: boolean; // Whether the show is still valid/active
 
+  @Column({
+    length: 500,
+    nullable: true,
+    default: "https://www.karafun.com/karaokebar/080601",
+  })
+  karafunUrl: string; // Karafun session URL from QR code scan
+
+  @Column({ length: 100, nullable: true })
+  karafunCurrentSinger: string; // Current Karafun singer (may not exist in our user database)
+
+  @Column({ type: "json", nullable: true })
+  karafunCachedData: any; // Cached Karafun queue data
+
+  @Column({ type: "datetime", nullable: true })
+  karafunLastParsed: Date; // Last time Karafun data was parsed
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -46,4 +62,7 @@ export class Show {
   // Relations
   @OneToMany(() => Rating, (rating) => rating.show)
   ratings: Rating[];
+
+  @Column({ type: "json", nullable: true })
+  singerOrder: string[]; // Array of singer usernames in order
 }
