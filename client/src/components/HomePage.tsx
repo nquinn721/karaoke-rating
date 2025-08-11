@@ -279,7 +279,12 @@ const HomePage: React.FC = observer(() => {
                       color="text.secondary"
                       sx={{ mb: 2 }}
                     >
-                      {participantCount} participant(s)
+                      {participantCount} current participant(s)
+                      {show.totalAttendeeCount && (
+                        <span style={{ marginLeft: "8px", opacity: 0.8 }}>
+                          • {show.totalAttendeeCount} total attendees
+                        </span>
+                      )}
                     </Typography>
                     {show.currentSinger && (
                       <Typography variant="body2" sx={{ mb: 2 }}>

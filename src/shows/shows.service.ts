@@ -50,6 +50,7 @@ export class ShowsService {
       name: createShowDto.name,
       venue: createShowDto.venue,
       participants: [],
+      totalAttendees: [],
       queue: [],
     });
 
@@ -64,6 +65,7 @@ export class ShowsService {
       name: savedShow.name,
       venue: savedShow.venue as "karafun" | "excess" | "dj steve",
       participants: participantNames,
+      totalAttendeeCount: (savedShow.totalAttendees || []).length,
       ratings: [],
       createdAt: savedShow.createdAt,
       queue: savedShow.queue || [],
@@ -90,6 +92,7 @@ export class ShowsService {
         name: show.name,
         venue: show.venue as "karafun" | "excess" | "dj steve",
         participants: await this.getUsernamesByIds(show.participants || []),
+        totalAttendeeCount: (show.totalAttendees || []).length,
         ratings:
           show.ratings?.map((rating) => ({
             id: rating.id.toString(),
@@ -128,6 +131,7 @@ export class ShowsService {
         name: show.name,
         venue: show.venue as "karafun" | "excess" | "dj steve",
         participants: await this.getUsernamesByIds(show.participants || []),
+        totalAttendeeCount: (show.totalAttendees || []).length,
         ratings:
           show.ratings?.map((rating) => ({
             id: rating.id.toString(),
@@ -170,6 +174,7 @@ export class ShowsService {
       name: show.name,
       venue: show.venue as "karafun" | "excess" | "dj steve",
       participants: await this.getUsernamesByIds(show.participants || []),
+      totalAttendeeCount: (show.totalAttendees || []).length,
       ratings:
         show.ratings?.map((rating) => ({
           id: rating.id.toString(),
@@ -199,15 +204,25 @@ export class ShowsService {
     if (!show) return undefined;
 
     const participants = show.participants || [];
+    const totalAttendees = show.totalAttendees || [];
+
+    // Add to current participants if not already there
     if (!participants.includes(joinShowDto.userId)) {
       participants.push(joinShowDto.userId);
       show.participants = participants;
-      await this.showRepository.save(show);
-
-      // Broadcast shows update
-      const allShows = await this.getAllShows();
-      this.chatGateway.server.emit("showsUpdated", allShows);
     }
+
+    // Add to total unique attendees if not already there
+    if (!totalAttendees.includes(joinShowDto.userId)) {
+      totalAttendees.push(joinShowDto.userId);
+      show.totalAttendees = totalAttendees;
+    }
+
+    await this.showRepository.save(show);
+
+    // Broadcast shows update
+    const allShows = await this.getAllShows();
+    this.chatGateway.server.emit("showsUpdated", allShows);
 
     return this.getShow(joinShowDto.showId);
   }

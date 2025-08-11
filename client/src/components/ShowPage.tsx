@@ -60,7 +60,6 @@ const ShowPage: React.FC = observer(() => {
 
   // Track if user has already rated the current performance
   const [hasUserRated, setHasUserRated] = useState(false);
-  const [checkingRating, setCheckingRating] = useState(false);
 
   // Rating accordion and snackbar state
   const [ratingAccordionExpanded, setRatingAccordionExpanded] = useState(true);
@@ -198,7 +197,6 @@ const ShowPage: React.FC = observer(() => {
         return;
       }
 
-      setCheckingRating(true);
       try {
         const result = await showsStore.hasUserRatedCurrentPerformance(
           id,
@@ -208,8 +206,6 @@ const ShowPage: React.FC = observer(() => {
       } catch (error) {
         console.error("Error checking if user has rated:", error);
         setHasUserRated(false);
-      } finally {
-        setCheckingRating(false);
       }
     };
 
@@ -376,6 +372,11 @@ const ShowPage: React.FC = observer(() => {
               {Array.isArray(currentParticipants)
                 ? `${currentParticipants.filter(Boolean).length} singers`
                 : "0 singers"}
+              {showsStore.currentShow?.totalAttendeeCount && (
+                <span style={{ marginLeft: "8px", opacity: 0.8 }}>
+                  • {showsStore.currentShow.totalAttendeeCount} total attendees
+                </span>
+              )}
             </Typography>
           </Box>
         </Box>

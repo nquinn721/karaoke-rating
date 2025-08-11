@@ -186,11 +186,15 @@ export class UserService {
 
   async getUserHistory(userId: number) {
     // Get all shows where user was a participant (stored as JSON array of user IDs in participants column)
+    // Use JSON_CONTAINS with proper JSON string format
     const showsAttended = await this.showRepository
       .createQueryBuilder("show")
-      .where("JSON_CONTAINS(show.participants, :userId)", {
-        userId: JSON.stringify(userId),
-      })
+      .where(
+        "show.participants IS NOT NULL AND JSON_CONTAINS(show.participants, :userId)",
+        {
+          userId: JSON.stringify(userId), // Convert to JSON string format
+        }
+      )
       .orderBy("show.createdAt", "DESC")
       .getMany();
 

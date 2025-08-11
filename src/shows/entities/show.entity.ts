@@ -23,6 +23,9 @@ export class Show {
   participants: number[]; // Array of user IDs
 
   @Column({ type: "json", nullable: true })
+  totalAttendees: number[]; // Array of all unique user IDs who have ever joined
+
+  @Column({ type: "json", nullable: true })
   queue: any[]; // Queue items for karaoke
 
   @Column({ type: "int", nullable: true })

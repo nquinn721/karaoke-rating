@@ -503,7 +503,9 @@ const HistoryPage: React.FC = observer(() => {
                                     sx={{
                                       width: 32,
                                       height: 32,
-                                      background: getUserColor(r.rater.username),
+                                      background: getUserColor(
+                                        r.rater.username
+                                      ),
                                       boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                                       border: "2px solid rgba(255,255,255,0.1)",
                                     }}
@@ -511,8 +513,18 @@ const HistoryPage: React.FC = observer(() => {
                                     {r.rater.username.charAt(0).toUpperCase()}
                                   </Avatar>
                                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                                      <Typography sx={{ fontWeight: 600 }} noWrap>
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 1,
+                                      }}
+                                    >
+                                      <Typography
+                                        sx={{ fontWeight: 600 }}
+                                        noWrap
+                                      >
                                         {r.rater.username}
                                       </Typography>
                                       <Chip
@@ -520,8 +532,10 @@ const HistoryPage: React.FC = observer(() => {
                                         size="small"
                                         sx={{
                                           fontWeight: "bold",
-                                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                                          background: "linear-gradient(45deg, #4ecdc4, #26d0ce)",
+                                          boxShadow:
+                                            "0 2px 8px rgba(0,0,0,0.1)",
+                                          background:
+                                            "linear-gradient(45deg, #4ecdc4, #26d0ce)",
                                           color: "white",
                                           border: "none",
                                           flexShrink: 0,
@@ -614,7 +628,9 @@ const HistoryPage: React.FC = observer(() => {
                                     sx={{
                                       width: 32,
                                       height: 32,
-                                      background: getUserColor(r.performer.username),
+                                      background: getUserColor(
+                                        r.performer.username
+                                      ),
                                       boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                                       border: "2px solid rgba(255,255,255,0.1)",
                                     }}
@@ -624,8 +640,18 @@ const HistoryPage: React.FC = observer(() => {
                                       .toUpperCase()}
                                   </Avatar>
                                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                                      <Typography sx={{ fontWeight: 600 }} noWrap>
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 1,
+                                      }}
+                                    >
+                                      <Typography
+                                        sx={{ fontWeight: 600 }}
+                                        noWrap
+                                      >
                                         {r.performer.username}
                                       </Typography>
                                       <Chip
@@ -633,8 +659,10 @@ const HistoryPage: React.FC = observer(() => {
                                         size="small"
                                         sx={{
                                           fontWeight: "bold",
-                                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                                          background: "linear-gradient(45deg, #ff6b6b, #ff8a80)",
+                                          boxShadow:
+                                            "0 2px 8px rgba(0,0,0,0.1)",
+                                          background:
+                                            "linear-gradient(45deg, #ff6b6b, #ff8a80)",
                                           color: "white",
                                           border: "none",
                                           flexShrink: 0,

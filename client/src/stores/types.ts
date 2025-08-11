@@ -10,6 +10,7 @@ export interface Show {
   currentSinger?: string;
   currentSong?: string;
   participants: string[];
+  totalAttendeeCount: number;
   ratings: Rating[];
   createdAt: Date;
   // Upcoming performances queue

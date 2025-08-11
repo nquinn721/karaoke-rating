@@ -35,7 +35,7 @@ const UsernameModal: React.FC = observer(() => {
       <DialogTitle>Welcome to Karaoke Ratings!</DialogTitle>
       <DialogContent>
         <Typography variant="body1" sx={{ mb: 2 }}>
-          Please enter your username to continue:
+          Enter your stage name:
         </Typography>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -45,7 +45,7 @@ const UsernameModal: React.FC = observer(() => {
         <TextField
           autoFocus
           fullWidth
-          label="Username"
+          label="Stage Name"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           onKeyPress={(e) => {

@@ -10,6 +10,7 @@ export interface Show {
   currentSinger?: string; // Display name for interface
   currentSong?: string;
   participants: string[]; // Display names for interface
+  totalAttendeeCount: number; // Total unique attendees who have ever joined
   ratings: Rating[];
   createdAt: Date;
   isValid?: boolean; // Whether the show is still valid/active
