@@ -238,7 +238,7 @@ export class ShowsService {
 
   async updateCurrentPerformer(
     showId: string,
-    singerId: number,
+    singer: string,
     song: string
   ): Promise<ShowInterface | undefined> {
     const show = await this.showRepository.findOne({
@@ -247,7 +247,17 @@ export class ShowsService {
 
     if (!show) return undefined;
 
-    show.currentSingerId = singerId;
+    // Find the user ID by username
+    const user = await this.userRepository.findOne({
+      where: { username: singer },
+    });
+
+    if (!user) {
+      console.error(`User not found: ${singer}`);
+      return undefined;
+    }
+
+    show.currentSingerId = user.id;
     show.currentSong = song;
     await this.showRepository.save(show);
 
@@ -255,10 +265,9 @@ export class ShowsService {
     this.chatGateway.server.emit("showsUpdated", allShows);
 
     // Inform room subscribers of performer change
-    const singerName = await this.getUsernameById(singerId);
     this.chatGateway.server.to(showId).emit("currentPerformerChanged", {
       showId,
-      singer: singerName,
+      singer: singer, // Use the username directly
       song,
     });
 

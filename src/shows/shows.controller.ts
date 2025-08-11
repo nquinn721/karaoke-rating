@@ -59,7 +59,7 @@ export class ShowsController {
   ): Promise<Show | undefined> {
     return this.showsService.updateCurrentPerformer(
       id,
-      body.singerId,
+      body.singer,
       body.song
     );
   }

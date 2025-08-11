@@ -44,7 +44,7 @@ export interface LeaveShowDto {
 }
 
 export interface UpdateCurrentPerformerDto {
-  singerId: number;
+  singer: string;
   song: string;
 }
 
