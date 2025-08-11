@@ -293,21 +293,33 @@ export class ShowsService {
     showId: string,
     item: QueueItem
   ): Promise<ShowInterface | undefined> {
+    console.log(`[DEBUG] Adding to queue - showId: ${showId}, item:`, item);
+    
     const show = await this.showRepository.findOne({
       where: { id: parseInt(showId) },
     });
 
-    if (!show) return undefined;
+    if (!show) {
+      console.log(`[DEBUG] Show not found for ID: ${showId}`);
+      return undefined;
+    }
 
     const queue = show.queue || [];
+    console.log(`[DEBUG] Current queue before adding:`, queue);
+    
     queue.push({ singer: item.singer, song: item.song });
     show.queue = queue;
-    await this.showRepository.save(show);
+    
+    console.log(`[DEBUG] Queue after adding:`, show.queue);
+    
+    const savedShow = await this.showRepository.save(show);
+    console.log(`[DEBUG] Saved show queue:`, savedShow.queue);
 
     // Notify clients of queue change
+    console.log(`[DEBUG] Emitting queueUpdated to room: ${showId}`);
     this.chatGateway.server.to(showId).emit("queueUpdated", {
       showId,
-      queue: show.queue,
+      queue: savedShow.queue,
     });
 
     return this.getShow(showId);

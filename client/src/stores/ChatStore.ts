@@ -124,8 +124,10 @@ export class ChatStore {
         showId: string;
         queue: { singer: string; song: string }[];
       }) => {
+        console.log(`[DEBUG] Received queueUpdated for show ${showId}:`, queue);
         runInAction(() => {
           this.queueByShow.set(showId, Array.isArray(queue) ? queue : []);
+          console.log(`[DEBUG] Updated queueByShow for show ${showId}:`, this.queueByShow.get(showId));
         });
       }
     );

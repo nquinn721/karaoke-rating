@@ -255,6 +255,7 @@ export class ShowsStore {
   }
 
   async addToQueue(showId: string, singer: string, song: string) {
+    console.log(`[DEBUG] ShowsStore.addToQueue called with:`, { showId, singer, song });
     try {
       const updated = await this.baseAPI.post<Show>(
         `/api/shows/${showId}/queue`,
@@ -263,15 +264,21 @@ export class ShowsStore {
           song,
         }
       );
+      console.log(`[DEBUG] API response:`, updated);
       runInAction(() => {
         if (this.currentShow && this.currentShow.id === showId) {
           this.currentShow.queue = updated.queue || ([] as any);
+          console.log(`[DEBUG] Updated currentShow.queue:`, this.currentShow.queue);
         }
         const index = this.shows.findIndex((s) => s.id === showId);
-        if (index !== -1) this.shows[index] = updated;
+        if (index !== -1) {
+          this.shows[index] = updated;
+          console.log(`[DEBUG] Updated show in shows array:`, this.shows[index].queue);
+        }
       });
       return updated;
     } catch (error) {
+      console.error(`[DEBUG] Error in addToQueue:`, error);
       runInAction(() => {
         this.error = error instanceof Error ? error.message : "Unknown error";
       });

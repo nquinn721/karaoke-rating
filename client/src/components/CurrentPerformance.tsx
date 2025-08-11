@@ -90,6 +90,12 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
       return wsQueue || show?.queue || [];
     }, [chatStore.queueByShow, showId, show?.queue]);
 
+    // Calculate unique singers in the queue
+    const uniqueSingerCount = useMemo(() => {
+      const singers = new Set(queue.map((item: any) => item.singer));
+      return singers.size;
+    }, [queue]);
+
     const [confirmOpen, setConfirmOpen] = useState<{
       open: boolean;
       index: number | null;
@@ -203,7 +209,7 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
               >
                 1. Add Singer
               </Typography>
-              {queue && queue.length > 1 && (
+              {uniqueSingerCount > 1 && (
                 <Button
                   size="small"
                   variant="outlined"
@@ -298,12 +304,30 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
                 onInputChange={(_, newInputValue) =>
                   setQueueSong(newInputValue)
                 }
-                onChange={(_, newValue) => {
+                onChange={async (_, newValue) => {
                   if (newValue && typeof newValue !== "string") {
+                    // Auto-set singer if not already set
+                    let singerToUse = queueSinger;
                     if (!queueSinger) {
                       setQueueSinger(newValue.artist);
+                      singerToUse = newValue.artist;
                     }
                     setQueueSong(newValue.title);
+                    
+                    // Auto-add to queue when selecting from autocomplete
+                    if (singerToUse.trim() && newValue.title.trim()) {
+                      try {
+                        await showsStore.addToQueue(
+                          showId,
+                          singerToUse.trim(),
+                          newValue.title.trim()
+                        );
+                        // Clear the song input after adding
+                        setQueueSong("");
+                      } catch (e) {
+                        console.error("Failed to auto-add to queue", e);
+                      }
+                    }
                   } else if (typeof newValue === "string") {
                     setQueueSong(newValue);
                   }
