@@ -49,6 +49,10 @@ const AdminPage: React.FC = observer(() => {
   const [deleteFeedbackId, setDeleteFeedbackId] = useState<string | null>(null);
   const [feedbackDeleteDialogOpen, setFeedbackDeleteDialogOpen] =
     useState(false);
+  const [feedbackDetailsModal, setFeedbackDetailsModal] = useState<{
+    open: boolean;
+    feedback: any | null;
+  }>({ open: false, feedback: null });
   const { dialogStyles } = useKeyboardAvoidance();
   const [realTimeStats, setRealTimeStats] = useState({
     totalUsers: 0,
@@ -559,14 +563,22 @@ const AdminPage: React.FC = observer(() => {
                 <TableCell sx={{ color: "text.secondary", fontWeight: 600 }}>
                   Date
                 </TableCell>
-                <TableCell sx={{ color: "text.secondary", fontWeight: 600 }}>
-                  Actions
-                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {feedbackStore.feedbackList.map((feedback) => (
-                <TableRow key={feedback.id}>
+                <TableRow 
+                  key={feedback.id}
+                  onClick={() => {
+                    setFeedbackDetailsModal({ open: true, feedback });
+                  }}
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": {
+                      backgroundColor: "rgba(255, 255, 255, 0.05)",
+                    },
+                  }}
+                >
                   <TableCell>{feedback.username}</TableCell>
                   <TableCell>
                     <Chip
@@ -602,28 +614,11 @@ const AdminPage: React.FC = observer(() => {
                   <TableCell>
                     {feedback.createdAt.toLocaleDateString()}
                   </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setDeleteFeedbackId(feedback.id);
-                        setFeedbackDeleteDialogOpen(true);
-                      }}
-                      sx={{
-                        color: "error.main",
-                        "&:hover": {
-                          bgcolor: "rgba(244, 67, 54, 0.1)",
-                        },
-                      }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
                 </TableRow>
               ))}
               {feedbackStore.feedbackList.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: "center", py: 4 }}>
+                  <TableCell colSpan={5} sx={{ textAlign: "center", py: 4 }}>
                     <Typography
                       variant="body2"
                       sx={{ color: "text.secondary" }}
@@ -797,6 +792,161 @@ const AdminPage: React.FC = observer(() => {
             variant="contained"
             color="error"
             onClick={handleDeleteFeedback}
+            sx={{
+              borderRadius: 2,
+              "&:hover": {
+                transform: "translateY(-1px)",
+                boxShadow: "0 4px 12px rgba(244, 67, 54, 0.3)",
+              },
+              transition: "all 0.2s ease",
+            }}
+          >
+            Delete Feedback
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Feedback Details Modal */}
+      <Dialog
+        open={feedbackDetailsModal.open}
+        onClose={() => {
+          setFeedbackDetailsModal({ open: false, feedback: null });
+        }}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: "rgba(30,30,30,0.95)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 3,
+          },
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            fontWeight: 600, 
+            borderBottom: "1px solid rgba(255,255,255,0.1)",
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          Feedback Details
+          {feedbackDetailsModal.feedback && (
+            <Chip
+              size="small"
+              label={feedbackDetailsModal.feedback.type}
+              sx={{
+                bgcolor:
+                  feedbackDetailsModal.feedback.type === "bug"
+                    ? "#f44336"
+                    : feedbackDetailsModal.feedback.type === "feature"
+                      ? "#2196f3"
+                      : feedbackDetailsModal.feedback.type === "improvement"
+                        ? "#ff9800"
+                        : "#4caf50",
+                color: "white",
+                fontSize: "0.75rem",
+                textTransform: "uppercase",
+              }}
+            />
+          )}
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {feedbackDetailsModal.feedback && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    User
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {feedbackDetailsModal.feedback.username}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    Status
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={feedbackDetailsModal.feedback.status}
+                    variant={
+                      feedbackDetailsModal.feedback.status === "resolved" ? "filled" : "outlined"
+                    }
+                    color={
+                      feedbackDetailsModal.feedback.status === "resolved" ? "success" : "default"
+                    }
+                  />
+                </Box>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                  Subject
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  {feedbackDetailsModal.feedback.subject}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                  Message
+                </Typography>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    bgcolor: "rgba(255,255,255,0.05)", 
+                    p: 2, 
+                    borderRadius: 1,
+                    whiteSpace: "pre-wrap"
+                  }}
+                >
+                  {feedbackDetailsModal.feedback.message}
+                </Typography>
+              </Box>
+              
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    Created
+                  </Typography>
+                  <Typography variant="body1">
+                    {feedbackDetailsModal.feedback.createdAt.toLocaleDateString()} {feedbackDetailsModal.feedback.createdAt.toLocaleTimeString()}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    Last Updated
+                  </Typography>
+                  <Typography variant="body1">
+                    {feedbackDetailsModal.feedback.updatedAt.toLocaleDateString()} {feedbackDetailsModal.feedback.updatedAt.toLocaleTimeString()}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <Button
+            onClick={() => {
+              setFeedbackDetailsModal({ open: false, feedback: null });
+            }}
+          >
+            Close
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => {
+              if (feedbackDetailsModal.feedback) {
+                setDeleteFeedbackId(feedbackDetailsModal.feedback.id);
+                setFeedbackDetailsModal({ open: false, feedback: null });
+                setFeedbackDeleteDialogOpen(true);
+              }
+            }}
             sx={{
               borderRadius: 2,
               "&:hover": {
