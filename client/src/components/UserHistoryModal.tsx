@@ -51,7 +51,6 @@ const UserHistoryModal: React.FC<UserHistoryModalProps> = observer(
       setLoading(true);
       try {
         const data = await showsStore.getUserHistory(username);
-        console.log("Fetched user history:", data);
         // Ensure data is always an array
         const historyArray = Array.isArray(data) ? data : [];
         setHistory(historyArray);

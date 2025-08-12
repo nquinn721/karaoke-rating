@@ -33,6 +33,9 @@ export const formatTime = (date: Date): string => {
 };
 
 // Check if a username is the current user
-export const isCurrentUser = (username: string, currentUsername: string): boolean => {
+export const isCurrentUser = (
+  username: string,
+  currentUsername: string
+): boolean => {
   return username === currentUsername;
 };

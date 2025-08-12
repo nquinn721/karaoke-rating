@@ -52,8 +52,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   > = new Map();
 
   async handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
-
     // Initialize socket metadata
     this.socketMeta.set(client.id, {
       connectedAt: new Date(),
@@ -443,8 +441,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
-
     // Get user from socket metadata before cleanup
     const meta = this.socketMeta.get(client.id);
     const user = (client as any).user || meta?.user;

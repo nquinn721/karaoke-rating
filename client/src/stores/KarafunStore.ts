@@ -73,13 +73,11 @@ export class KarafunStore {
     });
   }
 
-  // Load cached data when joining a show
   async loadCachedData(showId: string): Promise<void> {
     try {
       const show = await this.baseAPI.get(`/api/shows/${showId}`);
 
       if (show.venue === "karafun" && show.karafunCachedData) {
-        console.log("📦 Loading cached Karafun data from server");
         this.currentShowId = showId;
         this.updateQueueData(show.karafunCachedData);
 
@@ -100,8 +98,6 @@ export class KarafunStore {
     });
 
     try {
-      console.log("KarafunStore: Parsing queue for URL:", url);
-
       // Update the Karafun URL for this show first
       await this.baseAPI.patch(`/api/shows/${showId}/karafun-url`, {
         karafunUrl: url,
@@ -112,8 +108,6 @@ export class KarafunStore {
       const data: KarafunQueueData = await this.baseAPI.get<KarafunQueueData>(
         `/api/shows/${showId}/karafun-queue`
       );
-
-      console.log("KarafunStore: Received data:", data);
 
       // Update the queue data using the helper method
       this.updateQueueData(data);

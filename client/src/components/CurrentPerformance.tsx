@@ -222,380 +222,390 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
 
     return (
       <>
-        <Accordion
-          expanded={addSingerExpanded}
-          onChange={handleAccordionChange}
-          sx={{
-            mb: 3,
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 2,
-            "&:before": {
-              display: "none",
-            },
-            "& .MuiAccordionSummary-root": {
-              borderRadius: 2,
-            },
-          }}
-        >
-          <AccordionSummary
-            expandIcon={<ExpandMoreIcon />}
+        {/* Queue Management - only show for non-Karafun venues */}
+        {showsStore.shouldShowQueueManagement && (
+          <Accordion
+            expanded={addSingerExpanded}
+            onChange={handleAccordionChange}
             sx={{
-              backgroundColor: "rgba(255,255,255,0.05)",
-              "&:hover": {
-                backgroundColor: "rgba(255,255,255,0.08)",
+              mb: 3,
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 2,
+              "&:before": {
+                display: "none",
+              },
+              "& .MuiAccordionSummary-root": {
+                borderRadius: 2,
               },
             }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Queue Management
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            {/* Step 1: Add Singer */}
-            <Box
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
               sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
+                backgroundColor: "rgba(255,255,255,0.05)",
+                "&:hover": {
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                },
               }}
             >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, opacity: 0.8 }}
-              >
-                1. Add Singer
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Queue Management
               </Typography>
-              {participants.length > 1 && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setQueueOrderModalOpen(true)}
-                  sx={{
-                    fontSize: "0.75rem",
-                    py: 0.5,
-                    px: 1.5,
-                    borderRadius: 1.5,
-                  }}
-                >
-                  Order Singers
-                </Button>
-              )}
-            </Box>
-
-            {/* Singer Selection Row */}
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-                mb: 2,
-                flexDirection: { xs: "row", sm: "row" },
-                alignItems: { xs: "center", sm: "flex-start" },
-              }}
-            >
-              {participants.length > 0 ? (
-                <FormControl
-                  size="small"
-                  sx={{
-                    flex: 1,
-                  }}
-                >
-                  <InputLabel id="queue-singer-label">Singer</InputLabel>
-                  <Select
-                    labelId="queue-singer-label"
-                    label="Singer"
-                    value={queueSinger}
-                    onChange={(e) => setQueueSinger(e.target.value as string)}
-                  >
-                    {participants.map((p) => (
-                      <MenuItem key={p} value={p}>
-                        {p}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              ) : (
-                <TextField
-                  size="small"
-                  label="Singer"
-                  value={queueSinger}
-                  onChange={(e) => setQueueSinger(e.target.value)}
-                  sx={{ flex: 1 }}
-                />
-              )}
-
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setQueueSinger(userStore.username)}
-                disabled={!userStore.username}
-                sx={{
-                  flexShrink: 0,
-                  minWidth: "60px",
-                }}
-              >
-                Me
-              </Button>
-            </Box>
-
-            {/* Song Selection Row */}
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-                mb: 3,
-                flexDirection: { xs: "column", sm: "row" },
-                alignItems: { xs: "stretch", sm: "flex-end" },
-              }}
-            >
-              <Autocomplete
-                fullWidth
-                freeSolo
-                options={queueSuggestions}
-                getOptionLabel={(option) =>
-                  typeof option === "string"
-                    ? option
-                    : `${option.title} - ${option.artist}`
-                }
-                inputValue={queueSong}
-                onInputChange={(_, newInputValue) =>
-                  setQueueSong(newInputValue)
-                }
-                onChange={async (_, newValue) => {
-                  if (newValue && typeof newValue !== "string") {
-                    // Auto-set singer if not already set
-                    let singerToUse = queueSinger;
-                    if (!queueSinger) {
-                      setQueueSinger(newValue.artist);
-                      singerToUse = newValue.artist;
-                    }
-                    setQueueSong(newValue.title);
-
-                    // Auto-add to queue when selecting from autocomplete
-                    if (singerToUse.trim() && newValue.title.trim()) {
-                      try {
-                        await showsStore.addToQueue(
-                          showId,
-                          singerToUse.trim(),
-                          newValue.title.trim()
-                        );
-                        // Clear the song input after adding
-                        setQueueSong("");
-                      } catch (e) {
-                        console.error("Failed to auto-add to queue", e);
-                      }
-                    }
-                  } else if (typeof newValue === "string") {
-                    setQueueSong(newValue);
-                  }
-                }}
-                loading={queueLoading}
-                size="small"
-                sx={{ flex: 1 }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Song"
-                    size="small"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {queueLoading && (
-                            <CircularProgress color="inherit" size={16} />
-                          )}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-              />
-
-              <Button
-                variant="contained"
-                onClick={handleAddToQueue}
-                disabled={!queueSinger.trim() || !queueSong.trim()}
-                sx={{
-                  flexShrink: 0,
-                  minWidth: { xs: "100%", sm: "120px" },
-                  height: "40px", // Match input height
-                }}
-              >
-                Add to Queue
-              </Button>
-            </Box>
-
-            {/* Step 2: Queue */}
-            <Box sx={{ mb: 3 }}>
+            </AccordionSummary>
+            <AccordionDetails>
+              {/* Step 1: Add Singer */}
               <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}
               >
-                <QueueMusicIcon fontSize="small" />
                 <Typography
                   variant="subtitle2"
                   sx={{ fontWeight: 700, opacity: 0.8 }}
                 >
-                  2. Queue
+                  1. Add Singer
                 </Typography>
+                {participants.length > 1 && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setQueueOrderModalOpen(true)}
+                    sx={{
+                      fontSize: "0.75rem",
+                      py: 0.5,
+                      px: 1.5,
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    Order Singers
+                  </Button>
+                )}
               </Box>
 
-              {!queue || queue.length === 0 ? (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ textAlign: "center", py: 2 }}
-                >
-                  No one in queue
-                </Typography>
-              ) : (
-                <List
-                  dense
-                  sx={{
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 1,
-                  }}
-                >
-                  {orderedQueue.map((item: any, idx: number) => (
-                    <ListItem
-                      key={`${item.singer}-${item.song}-${idx}`}
-                      divider={idx < orderedQueue.length - 1}
-                      sx={{
-                        pr: { xs: 1, sm: 1 },
-                        flexDirection: { xs: "column", sm: "row" },
-                        alignItems: { xs: "flex-start", sm: "center" },
-                        py: { xs: 2, sm: 1 },
-                        gap: { xs: 1, sm: 0 },
-                      }}
-                    >
-                      <ListItemText
-                        sx={{
-                          flex: 1,
-                          mb: { xs: 1, sm: 0 },
-                          mr: { xs: 0, sm: 2 },
-                        }}
-                        primary={
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {item.singer}
-                          </Typography>
-                        }
-                        secondary={
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{
-                              display: "block",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: { xs: "normal", sm: "nowrap" },
-                              maxWidth: { xs: "none", sm: "200px" },
-                            }}
-                          >
-                            {item.song}
-                          </Typography>
-                        }
-                      />
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 1,
-                          flexDirection: { xs: "row", sm: "row" },
-                          width: { xs: "100%", sm: "auto" },
-                          justifyContent: {
-                            xs: "space-between",
-                            sm: "flex-end",
-                          },
-                        }}
-                      >
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() =>
-                            handleSetCurrent(item.singer, item.song)
-                          }
-                          sx={{
-                            flex: { xs: 1, sm: "0 0 auto" },
-                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                          }}
-                        >
-                          Set Current
-                        </Button>
-                        <Tooltip title="Remove from queue">
-                          <IconButton
-                            color="error"
-                            size="small"
-                            onClick={() => requestRemove(idx)}
-                            sx={{
-                              flexShrink: 0,
-                              minWidth: { xs: "36px", sm: "auto" },
-                            }}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </ListItem>
-                  ))}
-                </List>
-              )}
-            </Box>
-
-            {/* Step 3: Next */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, mb: 2, opacity: 0.8 }}
+              {/* Singer Selection Row */}
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  mb: 2,
+                  flexDirection: { xs: "row", sm: "row" },
+                  alignItems: { xs: "center", sm: "flex-start" },
+                }}
               >
-                3. Next
-              </Typography>
+                {participants.length > 0 ? (
+                  <FormControl
+                    size="small"
+                    sx={{
+                      flex: 1,
+                    }}
+                  >
+                    <InputLabel id="queue-singer-label">Singer</InputLabel>
+                    <Select
+                      labelId="queue-singer-label"
+                      label="Singer"
+                      value={queueSinger}
+                      onChange={(e) => setQueueSinger(e.target.value as string)}
+                    >
+                      {participants.map((p) => (
+                        <MenuItem key={p} value={p}>
+                          {p}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                ) : (
+                  <TextField
+                    size="small"
+                    label="Singer"
+                    value={queueSinger}
+                    onChange={(e) => setQueueSinger(e.target.value)}
+                    sx={{ flex: 1 }}
+                  />
+                )}
 
-              {/* Current Singer Display */}
-              {currentPerformer.singer && (
-                <Box
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setQueueSinger(userStore.username)}
+                  disabled={!userStore.username}
                   sx={{
-                    p: 2,
-                    mb: 2,
-                    backgroundColor: "rgba(255, 215, 0, 0.1)",
-                    border: "1px solid rgba(255, 215, 0, 0.3)",
-                    borderRadius: 2,
+                    flexShrink: 0,
+                    minWidth: "60px",
                   }}
                 >
+                  Me
+                </Button>
+              </Box>
+
+              {/* Song Selection Row */}
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  mb: 3,
+                  flexDirection: { xs: "column", sm: "row" },
+                  alignItems: { xs: "stretch", sm: "flex-end" },
+                }}
+              >
+                <Autocomplete
+                  fullWidth
+                  freeSolo
+                  options={queueSuggestions}
+                  getOptionLabel={(option) =>
+                    typeof option === "string"
+                      ? option
+                      : `${option.title} - ${option.artist}`
+                  }
+                  inputValue={queueSong}
+                  onInputChange={(_, newInputValue) =>
+                    setQueueSong(newInputValue)
+                  }
+                  onChange={async (_, newValue) => {
+                    if (newValue && typeof newValue !== "string") {
+                      // Auto-set singer if not already set
+                      let singerToUse = queueSinger;
+                      if (!queueSinger) {
+                        setQueueSinger(newValue.artist);
+                        singerToUse = newValue.artist;
+                      }
+                      setQueueSong(newValue.title);
+
+                      // Auto-add to queue when selecting from autocomplete
+                      if (singerToUse.trim() && newValue.title.trim()) {
+                        try {
+                          await showsStore.addToQueue(
+                            showId,
+                            singerToUse.trim(),
+                            newValue.title.trim()
+                          );
+                          // Clear the song input after adding
+                          setQueueSong("");
+                        } catch (e) {
+                          console.error("Failed to auto-add to queue", e);
+                        }
+                      }
+                    } else if (typeof newValue === "string") {
+                      setQueueSong(newValue);
+                    }
+                  }}
+                  loading={queueLoading}
+                  size="small"
+                  sx={{ flex: 1 }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Song"
+                      size="small"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {queueLoading && (
+                              <CircularProgress color="inherit" size={16} />
+                            )}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                />
+
+                <Button
+                  variant="contained"
+                  onClick={handleAddToQueue}
+                  disabled={!queueSinger.trim() || !queueSong.trim()}
+                  sx={{
+                    flexShrink: 0,
+                    minWidth: { xs: "100%", sm: "120px" },
+                    height: "40px", // Match input height
+                  }}
+                >
+                  Add to Queue
+                </Button>
+              </Box>
+
+              {/* Step 2: Queue */}
+              <Box sx={{ mb: 3 }}>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}
+                >
+                  <QueueMusicIcon fontSize="small" />
                   <Typography
-                    variant="caption"
-                    sx={{ color: "#ffd700", fontWeight: 600, display: "block" }}
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, opacity: 0.8 }}
                   >
-                    CURRENTLY SINGING
+                    2. Queue
                   </Typography>
+                </Box>
+
+                {!queue || queue.length === 0 ? (
                   <Typography
                     variant="body2"
-                    sx={{ fontWeight: 600, color: "text.primary" }}
+                    color="text.secondary"
+                    sx={{ textAlign: "center", py: 2 }}
                   >
-                    {currentPerformer.singer}
+                    No one in queue
                   </Typography>
-                  {currentPerformer.song && (
+                ) : (
+                  <List
+                    dense
+                    sx={{
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 1,
+                    }}
+                  >
+                    {orderedQueue.map((item: any, idx: number) => (
+                      <ListItem
+                        key={`${item.singer}-${item.song}-${idx}`}
+                        divider={idx < orderedQueue.length - 1}
+                        sx={{
+                          pr: { xs: 1, sm: 1 },
+                          flexDirection: { xs: "column", sm: "row" },
+                          alignItems: { xs: "flex-start", sm: "center" },
+                          py: { xs: 2, sm: 1 },
+                          gap: { xs: 1, sm: 0 },
+                        }}
+                      >
+                        <ListItemText
+                          sx={{
+                            flex: 1,
+                            mb: { xs: 1, sm: 0 },
+                            mr: { xs: 0, sm: 2 },
+                          }}
+                          primary={
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 500 }}
+                            >
+                              {item.singer}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: "block",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: { xs: "normal", sm: "nowrap" },
+                                maxWidth: { xs: "none", sm: "200px" },
+                              }}
+                            >
+                              {item.song}
+                            </Typography>
+                          }
+                        />
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            gap: 1,
+                            flexDirection: { xs: "row", sm: "row" },
+                            width: { xs: "100%", sm: "auto" },
+                            justifyContent: {
+                              xs: "space-between",
+                              sm: "flex-end",
+                            },
+                          }}
+                        >
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() =>
+                              handleSetCurrent(item.singer, item.song)
+                            }
+                            sx={{
+                              flex: { xs: 1, sm: "0 0 auto" },
+                              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            }}
+                          >
+                            Set Current
+                          </Button>
+                          <Tooltip title="Remove from queue">
+                            <IconButton
+                              color="error"
+                              size="small"
+                              onClick={() => requestRemove(idx)}
+                              sx={{
+                                flexShrink: 0,
+                                minWidth: { xs: "36px", sm: "auto" },
+                              }}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </Box>
+
+              {/* Step 3: Next */}
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: 700, mb: 2, opacity: 0.8 }}
+                >
+                  3. Next
+                </Typography>
+
+                {/* Current Singer Display */}
+                {currentPerformer.singer && (
+                  <Box
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                      backgroundColor: "rgba(255, 215, 0, 0.1)",
+                      border: "1px solid rgba(255, 215, 0, 0.3)",
+                      borderRadius: 2,
+                    }}
+                  >
                     <Typography
                       variant="caption"
-                      sx={{ color: "text.secondary" }}
+                      sx={{
+                        color: "#ffd700",
+                        fontWeight: 600,
+                        display: "block",
+                      }}
                     >
-                      "{currentPerformer.song}"
+                      CURRENTLY SINGING
                     </Typography>
-                  )}
-                </Box>
-              )}
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, color: "text.primary" }}
+                    >
+                      {currentPerformer.singer}
+                    </Typography>
+                    {currentPerformer.song && (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "text.secondary" }}
+                      >
+                        "{currentPerformer.song}"
+                      </Typography>
+                    )}
+                  </Box>
+                )}
 
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={handleNext}
-                disabled={!queue || queue.length === 0}
-                size="large"
-              >
-                Next
-              </Button>
-            </Box>
-          </AccordionDetails>
-        </Accordion>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={handleNext}
+                  disabled={!queue || queue.length === 0}
+                  size="large"
+                >
+                  Next
+                </Button>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        )}
 
         {/* Remove confirmation */}
         <Dialog open={confirmOpen.open} onClose={cancelRemove}>

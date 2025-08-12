@@ -613,27 +613,6 @@ const ShowPage: React.FC = observer(() => {
                 </AccordionDetails>
               </Accordion>
             )}
-
-          {/* Queue Management - only show for non-Karafun venues */}
-          {!isKarafunShow && (
-            <Paper
-              sx={{
-                p: 2,
-                mb: 3,
-                backgroundColor: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 2,
-              }}
-            >
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Queue Management
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Queue management features will be available here for non-Karafun
-                shows.
-              </Typography>
-            </Paper>
-          )}
         </Box>
       )}
 
@@ -700,7 +679,10 @@ const ShowPage: React.FC = observer(() => {
                   sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
                 >
                   {chatStore.messages.map((message, index) => {
-                    const isOwn = isCurrentUser(message.username, userStore.username);
+                    const isOwn = isCurrentUser(
+                      message.username,
+                      userStore.username
+                    );
                     const userColor = getUserColor(message.username);
                     const isFirstFromUser =
                       index === 0 ||

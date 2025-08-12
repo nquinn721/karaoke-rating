@@ -125,16 +125,6 @@ export class ChatStore {
         showId: string;
         queue: { singer: string; song: string }[];
       }) => {
-        console.log(`[DEBUG] Received queueUpdated for show ${showId}:`, queue);
-        console.log(
-          `[DEBUG] Current queueByShow Map before update:`,
-          this.queueByShow
-        );
-        console.log(
-          `[DEBUG] Current queueByShow keys:`,
-          Array.from(this.queueByShow.keys())
-        );
-
         const previousQueue = this.queueByShow.get(showId) || [];
         const newQueue = Array.isArray(queue) ? queue : [];
 
@@ -159,18 +149,6 @@ export class ChatStore {
 
         runInAction(() => {
           this.queueByShow.set(showId, newQueue);
-          console.log(
-            `[DEBUG] Updated queueByShow for show ${showId}:`,
-            this.queueByShow.get(showId)
-          );
-          console.log(
-            `[DEBUG] queueByShow Map after update:`,
-            this.queueByShow
-          );
-          console.log(
-            `[DEBUG] queueByShow keys after update:`,
-            Array.from(this.queueByShow.keys())
-          );
         });
       }
     );
@@ -240,16 +218,9 @@ export class ChatStore {
     console.log(
       `[DEBUG] ChatStore.joinShow called with showId: ${showId}, username: ${username}`
     );
-    console.log(`[DEBUG] User data from localStorage:`, user);
-    console.log(`[DEBUG] Socket connected:`, this.socket.connected);
 
     this.socket.emit(
       "joinShow",
-      userId ? { showId, userId } : { showId, username }
-    );
-
-    console.log(
-      `[DEBUG] Emitted joinShow event with data:`,
       userId ? { showId, userId } : { showId, username }
     );
   }

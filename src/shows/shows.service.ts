@@ -336,37 +336,21 @@ export class ShowsService {
     showId: string,
     item: QueueItem
   ): Promise<ShowInterface | undefined> {
-    console.log(`[DEBUG] Adding to queue - showId: ${showId}, item:`, item);
-
     const show = await this.showRepository.findOne({
       where: { id: parseInt(showId) },
     });
 
     if (!show) {
-      console.log(`[DEBUG] Show not found for ID: ${showId}`);
       return undefined;
     }
 
     const queue = show.queue || [];
-    console.log(`[DEBUG] Current queue before adding:`, queue);
-
     queue.push({ singer: item.singer, song: item.song });
     show.queue = queue;
 
-    console.log(`[DEBUG] Queue after adding:`, show.queue);
-
     const savedShow = await this.showRepository.save(show);
-    console.log(`[DEBUG] Saved show queue:`, savedShow.queue);
 
     // Notify clients of queue change
-    console.log(`[DEBUG] Emitting queueUpdated to room: ${showId}`);
-    // Debug: Check how many clients are in this room
-    const roomSockets = await this.chatGateway.server.in(showId).fetchSockets();
-    console.log(
-      `[DEBUG] Room ${showId} has ${roomSockets.length} connected clients:`,
-      roomSockets.map((s) => s.id)
-    );
-
     this.chatGateway.server.to(showId).emit("queueUpdated", {
       showId,
       queue: savedShow.queue,
@@ -815,9 +799,6 @@ export class ShowsService {
         console.log("🧪 Using test URL for Karafun parsing:", testUrl);
         karafunData = await this.karafunService.parseQueueFromUrl(testUrl);
       } else {
-        console.log(
-          `🎤 Fetching fresh Karafun data for show ${showId} from ${show.karafunUrl}`
-        );
         karafunData = await this.karafunService.parseQueueFromUrl(
           show.karafunUrl
         );
@@ -829,15 +810,7 @@ export class ShowsService {
         show.karafunLastParsed = now;
         await this.showRepository.save(show);
 
-        console.log(
-          `💾 Cached fresh Karafun data for show ${showId} with ${karafunData.singers?.length || 0} singers`
-        );
-
         // Always broadcast the updated data to all clients in the show
-        // This ensures that whenever fresh Karafun data is fetched, all connected clients are updated
-        console.log(
-          `📡 Broadcasting Karafun queue update to all clients in show ${showId}`
-        );
         this.chatGateway.server
           .to(`show_${showId}`)
           .emit("karafunQueueUpdated", {

@@ -1,4 +1,10 @@
-import { action, computed, makeObservable, observable, runInAction } from "mobx";
+import {
+  action,
+  computed,
+  makeObservable,
+  observable,
+  runInAction,
+} from "mobx";
 import { BaseAPIStore } from "./BaseAPIStore";
 import { Show } from "./types";
 
@@ -26,6 +32,7 @@ export class ShowsStore {
       loading: observable,
       error: observable,
       isKarafunShow: computed,
+      shouldShowQueueManagement: computed,
       currentPerformer: computed,
       fetchShows: action,
       createShow: action,
@@ -49,6 +56,10 @@ export class ShowsStore {
     return this.currentShow?.venue?.toLowerCase() === "karafun";
   }
 
+  get shouldShowQueueManagement(): boolean {
+    return !this.isKarafunShow;
+  }
+
   get currentPerformer(): { singer?: string; song?: string } {
     if (!this.rootStore) {
       return { singer: undefined, song: undefined };
@@ -56,7 +67,9 @@ export class ShowsStore {
 
     const { chatStore, karafunStore } = this.rootStore;
     const showId = this.currentShow?.id;
-    const live = showId ? chatStore.currentPerformerByShow.get(showId) : undefined;
+    const live = showId
+      ? chatStore.currentPerformerByShow.get(showId)
+      : undefined;
 
     // For Karafun shows, validate that the performer is a registered user
     if (this.isKarafunShow) {
@@ -85,9 +98,6 @@ export class ShowsStore {
           };
         } else {
           // Karafun performer is not a registered user - no rating allowed
-          console.log(
-            `🚫 Karafun performer "${karafunNickname}" is not a registered user, skipping rating`
-          );
           return { singer: undefined, song: undefined };
         }
       }
@@ -318,11 +328,6 @@ export class ShowsStore {
   }
 
   async addToQueue(showId: string, singer: string, song: string) {
-    console.log(`[DEBUG] ShowsStore.addToQueue called with:`, {
-      showId,
-      singer,
-      song,
-    });
     try {
       const updated = await this.baseAPI.post<Show>(
         `/api/shows/${showId}/queue`,
@@ -331,22 +336,13 @@ export class ShowsStore {
           song,
         }
       );
-      console.log(`[DEBUG] API response:`, updated);
       runInAction(() => {
         if (this.currentShow && this.currentShow.id === showId) {
           this.currentShow.queue = updated.queue || ([] as any);
-          console.log(
-            `[DEBUG] Updated currentShow.queue:`,
-            this.currentShow.queue
-          );
         }
         const index = this.shows.findIndex((s) => s.id === showId);
         if (index !== -1) {
           this.shows[index] = updated;
-          console.log(
-            `[DEBUG] Updated show in shows array:`,
-            this.shows[index].queue
-          );
         }
       });
 
@@ -359,7 +355,6 @@ export class ShowsStore {
 
       return updated;
     } catch (error) {
-      console.error(`[DEBUG] Error in addToQueue:`, error);
       runInAction(() => {
         this.error = error instanceof Error ? error.message : "Unknown error";
       });
@@ -594,10 +589,6 @@ export class ShowsStore {
         });
       });
 
-      console.log(
-        `Fetched and transformed history for ${username}:`,
-        combinedHistory
-      );
       return combinedHistory;
     } catch (error) {
       console.error("Error fetching user history:", error);

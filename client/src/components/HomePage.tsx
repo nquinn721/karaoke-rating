@@ -38,17 +38,7 @@ const HomePage: React.FC = observer(() => {
   const [changeUsernameModalOpen, setChangeUsernameModalOpen] = useState(false);
   const { dialogStyles } = useKeyboardAvoidance();
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log("HomePage rendering:", {
-      showsStore: !!showsStore,
-      shows: showsStore?.shows,
-      showsLength: showsStore?.shows?.length,
-    });
-  }, [showsStore?.shows]);
-
   useEffect(() => {
-    console.log("Fetching shows...");
     showsStore.fetchShows();
   }, []);
 
