@@ -4,10 +4,10 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { AdminGuard } from "../auth/admin.guard";
 import { ChatModule } from "../chat/chat.module";
 import { UserModule } from "../user/user.module";
+import { KarafunSession } from "./entities/karafun-session.entity";
 import { KarafunController } from "./karafun.controller";
 import { KarafunService } from "./karafun.service";
 import { KarafunSessionManager } from "./session-manager.service";
-import { KarafunSession } from "./entities/karafun-session.entity";
 
 @Module({
   imports: [

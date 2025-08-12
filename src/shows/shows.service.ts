@@ -665,9 +665,15 @@ export class ShowsService {
 
     // Start or restart a persistent Karafun session for this show
     try {
-      await this.karafunSessionManager.startPersistentSession(showId, karafunUrl);
+      await this.karafunSessionManager.startPersistentSession(
+        showId,
+        karafunUrl
+      );
     } catch (e) {
-      console.error(`Failed to start persistent Karafun session for show ${showId}:`, e);
+      console.error(
+        `Failed to start persistent Karafun session for show ${showId}:`,
+        e
+      );
       // Non-fatal for updating the URL
     }
 
@@ -695,7 +701,10 @@ export class ShowsService {
       try {
         await this.karafunSessionManager.stopSession(id);
       } catch (e) {
-        console.warn(`Failed to stop Karafun session for deleted show ${id}:`, e);
+        console.warn(
+          `Failed to stop Karafun session for deleted show ${id}:`,
+          e
+        );
       }
 
       // Delete associated ratings first (if any)
@@ -728,7 +737,10 @@ export class ShowsService {
       try {
         await this.karafunSessionManager.stopAllSessions();
       } catch (e) {
-        console.warn("Failed to stop all Karafun sessions during deleteAllShows:", e);
+        console.warn(
+          "Failed to stop all Karafun sessions during deleteAllShows:",
+          e
+        );
       }
 
       // Delete all ratings first

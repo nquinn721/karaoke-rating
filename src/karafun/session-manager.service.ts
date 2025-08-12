@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger, forwardRef } from "@nestjs/common";
 // Removed InjectRepository and Repository since persistence isn't used yet
 import * as puppeteer from "puppeteer";
-import { KarafunQueueData } from "./karafun.interface";
 import { ChatGateway } from "../chat/chat.gateway";
+import { KarafunQueueData } from "./karafun.interface";
 
 interface ActiveSession {
   browser: puppeteer.Browser;
@@ -38,7 +38,8 @@ export class KarafunSessionManager {
         return (
           text.includes("The connection to the application has been lost") ||
           text.includes("reactivate the remote control feature") ||
-          (text.includes("Remote Control") && text.includes("connection has been lost"))
+          (text.includes("Remote Control") &&
+            text.includes("connection has been lost"))
         );
       });
       return !!hasLostText;
@@ -67,7 +68,10 @@ export class KarafunSessionManager {
     // Notify clients
     this.chatGateway.server
       .to(`show_${showId}`)
-      .emit("karafunQueueUpdated", { showId: parseInt(showId), karafunData: endedData });
+      .emit("karafunQueueUpdated", {
+        showId: parseInt(showId),
+        karafunData: endedData,
+      });
 
     // Optional: dedicated ended event
     this.chatGateway.server
@@ -115,7 +119,9 @@ export class KarafunSessionManager {
 
       // If the session already shows remote-error, end immediately
       if (await this.isRemoteError(page)) {
-        this.logger.warn(`Karafun session for show ${showId} is already in remote-error; stopping.`);
+        this.logger.warn(
+          `Karafun session for show ${showId} is already in remote-error; stopping.`
+        );
         await this.endSessionForRemoteError(showId);
         // Return an error-shaped payload so callers have something deterministic
         return {
@@ -255,7 +261,9 @@ export class KarafunSessionManager {
 
       // Detect remote-error during polling
       if (await this.isRemoteError(session.page)) {
-        this.logger.log(`Detected remote-error for show ${showId}; stopping session.`);
+        this.logger.log(
+          `Detected remote-error for show ${showId}; stopping session.`
+        );
         await this.endSessionForRemoteError(showId);
         return null;
       }
@@ -269,12 +277,10 @@ export class KarafunSessionManager {
       session.retryCount = 0; // Reset retry count on success
 
       // Broadcast update to clients via WebSocket
-      this.chatGateway.server
-        .to(`show_${showId}`)
-        .emit("karafunQueueUpdated", {
-          showId: parseInt(showId),
-          karafunData: queueData,
-        });
+      this.chatGateway.server.to(`show_${showId}`).emit("karafunQueueUpdated", {
+        showId: parseInt(showId),
+        karafunData: queueData,
+      });
 
       this.logger.debug(
         `🔄 Queue update for show ${showId}: ${queueData.singers.length} singers`
