@@ -1,20 +1,26 @@
-// Generate consistent colors for usernames
+// Generate consistent colors for usernames with vibrant dark theme colors
 export const getUserColor = (username: string): string => {
   const colors = [
-    "#ff6b6b", // Coral red
-    "#4ecdc4", // Turquoise
-    "#45b7d1", // Sky blue
-    "#f9ca24", // Yellow
-    "#6c5ce7", // Purple
-    "#a29bfe", // Light purple
-    "#fd79a8", // Pink
-    "#00b894", // Green
-    "#e17055", // Orange
-    "#74b9ff", // Light blue
-    "#55a3ff", // Blue
-    "#26de81", // Light green
-    "#fc5c65", // Red
-    "#fed330", // Amber
+    "#ff6b6b", // Vibrant coral
+    "#4ecdc4", // Electric turquoise
+    "#00aaff", // Electric blue
+    "#ffdd00", // Bright yellow
+    "#00ff88", // Electric green
+    "#ff44aa", // Hot pink
+    "#aa44ff", // Purple
+    "#ff8800", // Orange
+    "#44ffaa", // Mint green
+    "#ff4488", // Pink red
+    "#88aaff", // Light blue
+    "#aaff44", // Lime green
+    "#ff4444", // Bright red
+    "#44aaff", // Sky blue
+    "#ffaa44", // Gold
+    "#ff66cc", // Bright pink
+    "#66ccff", // Light blue
+    "#ccff66", // Light green
+    "#ff6666", // Light red
+    "#66ffcc", // Aqua green
   ];
 
   let hash = 0;

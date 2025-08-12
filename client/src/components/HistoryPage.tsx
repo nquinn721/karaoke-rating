@@ -15,6 +15,7 @@ import { observer } from "mobx-react-lite";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { rootStore } from "../stores/RootStore";
+import { getUserColor } from "../utils/colorUtils";
 import UserMenu from "./UserMenu";
 
 interface ShowSummary {
@@ -93,32 +94,6 @@ const HistoryPage: React.FC = observer(() => {
     };
     load();
   }, [userStore.username]);
-
-  // Generate consistent colors for usernames
-  const getUserColor = (username: string) => {
-    const colors = [
-      "#ff6b6b", // Coral red
-      "#4ecdc4", // Turquoise
-      "#45b7d1", // Sky blue
-      "#f9ca24", // Yellow
-      "#6c5ce7", // Purple
-      "#a29bfe", // Light purple
-      "#fd79a8", // Pink
-      "#00b894", // Green
-      "#e17055", // Orange
-      "#74b9ff", // Light blue
-      "#55a3ff", // Blue
-      "#26de81", // Light green
-      "#fc5c65", // Red
-      "#fed330", // Amber
-    ];
-
-    let hash = 0;
-    for (let i = 0; i < username.length; i++) {
-      hash = username.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
-  };
 
   const formatDateTime = (d: string | Date) => new Date(d).toLocaleString();
 
@@ -216,23 +191,47 @@ const HistoryPage: React.FC = observer(() => {
           justifyContent: "space-between",
           alignItems: "center",
           mb: { xs: 2, sm: 3 },
-          p: { xs: 1.25, sm: 2 },
-          borderRadius: 2,
-          border: "1px solid",
-          borderColor: "rgba(255,255,255,0.1)",
+          p: { xs: 1.5, sm: 2.5 },
+          borderRadius: 3,
+          border: "2px solid",
+          borderColor: "rgba(78, 205, 196, 0.3)",
           background:
-            "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
+            "linear-gradient(135deg, rgba(78,205,196,0.15) 0%, rgba(255,107,107,0.15) 50%, rgba(170,68,255,0.15) 100%)",
+          backdropFilter: "blur(8px)",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+          position: "relative",
+          overflow: "hidden",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: 0,
+            left: "-100%",
+            width: "100%",
+            height: "100%",
+            background: "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent)",
+            animation: "shimmer 3s infinite",
+          },
+          "@keyframes shimmer": {
+            "0%": { left: "-100%" },
+            "100%": { left: "100%" },
+          },
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <IconButton
             onClick={() => navigate("/")}
             sx={{
-              color: "text.secondary",
+              color: "rgba(78, 205, 196, 0.8)",
+              background: "rgba(78, 205, 196, 0.1)",
+              border: "1px solid rgba(78, 205, 196, 0.3)",
               "&:hover": {
-                color: "primary.main",
-                backgroundColor: "rgba(255,255,255,0.05)",
+                color: "#4ecdc4",
+                background: "rgba(78, 205, 196, 0.2)",
+                borderColor: "rgba(78, 205, 196, 0.5)",
+                boxShadow: "0 0 20px rgba(78, 205, 196, 0.3)",
+                transform: "translateY(-1px)",
               },
+              transition: "all 0.3s ease",
             }}
             aria-label="Go to home"
           >
@@ -241,12 +240,14 @@ const HistoryPage: React.FC = observer(() => {
           <Typography
             variant="h5"
             sx={{
-              fontWeight: 700,
-              fontSize: { xs: "1.2rem", sm: "1.5rem" },
-              background: "linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1)",
+              fontWeight: 900,
+              fontSize: { xs: "1.4rem", sm: "1.8rem" },
+              background: "linear-gradient(45deg, #4ecdc4 0%, #ff6b6b 50%, #aa44ff 100%)",
               WebkitBackgroundClip: "text",
               backgroundClip: "text",
               color: "transparent",
+              textShadow: "0 0 30px rgba(78, 205, 196, 0.5)",
+              letterSpacing: -0.5,
             }}
           >
             My History
@@ -261,13 +262,15 @@ const HistoryPage: React.FC = observer(() => {
           <Card
             sx={{
               background:
-                "linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%)",
-              border: "1px solid rgba(255, 107, 107, 0.2)",
-              backdropFilter: "blur(10px)",
+                "linear-gradient(135deg, rgba(255, 107, 107, 0.2) 0%, rgba(255, 107, 107, 0.08) 100%)",
+              border: "2px solid rgba(255, 107, 107, 0.3)",
+              backdropFilter: "blur(12px)",
               transition: "all 0.3s ease",
+              boxShadow: "0 4px 20px rgba(255, 107, 107, 0.1)",
               "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: "0 8px 25px rgba(255, 107, 107, 0.15)",
+                transform: "translateY(-4px) scale(1.02)",
+                boxShadow: "0 12px 35px rgba(255, 107, 107, 0.25)",
+                borderColor: "rgba(255, 107, 107, 0.5)",
               },
             }}
           >
@@ -275,16 +278,17 @@ const HistoryPage: React.FC = observer(() => {
               <Typography
                 variant="h4"
                 sx={{
-                  fontWeight: "bold",
-                  background: "linear-gradient(45deg, #ff6b6b, #ff8a80)",
+                  fontWeight: 900,
+                  background: "linear-gradient(45deg, #ff6b6b 0%, #ff4444 100%)",
                   WebkitBackgroundClip: "text",
                   backgroundClip: "text",
                   color: "transparent",
+                  textShadow: "0 0 20px rgba(255, 107, 107, 0.3)",
                 }}
               >
                 {stats.totalShowsAttended}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                 Shows Attended
               </Typography>
             </CardContent>
@@ -294,13 +298,15 @@ const HistoryPage: React.FC = observer(() => {
           <Card
             sx={{
               background:
-                "linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(78, 205, 196, 0.05) 100%)",
-              border: "1px solid rgba(78, 205, 196, 0.2)",
-              backdropFilter: "blur(10px)",
+                "linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, rgba(78, 205, 196, 0.08) 100%)",
+              border: "2px solid rgba(78, 205, 196, 0.3)",
+              backdropFilter: "blur(12px)",
               transition: "all 0.3s ease",
+              boxShadow: "0 4px 20px rgba(78, 205, 196, 0.1)",
               "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: "0 8px 25px rgba(78, 205, 196, 0.15)",
+                transform: "translateY(-4px) scale(1.02)",
+                boxShadow: "0 12px 35px rgba(78, 205, 196, 0.25)",
+                borderColor: "rgba(78, 205, 196, 0.5)",
               },
             }}
           >
@@ -308,16 +314,17 @@ const HistoryPage: React.FC = observer(() => {
               <Typography
                 variant="h4"
                 sx={{
-                  fontWeight: "bold",
-                  background: "linear-gradient(45deg, #4ecdc4, #26d0ce)",
+                  fontWeight: 900,
+                  background: "linear-gradient(45deg, #4ecdc4 0%, #00ff88 100%)",
                   WebkitBackgroundClip: "text",
                   backgroundClip: "text",
                   color: "transparent",
+                  textShadow: "0 0 20px rgba(78, 205, 196, 0.3)",
                 }}
               >
                 {stats.totalRatingsGiven}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                 Ratings Given
               </Typography>
             </CardContent>
@@ -327,13 +334,15 @@ const HistoryPage: React.FC = observer(() => {
           <Card
             sx={{
               background:
-                "linear-gradient(135deg, rgba(69, 183, 209, 0.1) 0%, rgba(69, 183, 209, 0.05) 100%)",
-              border: "1px solid rgba(69, 183, 209, 0.2)",
-              backdropFilter: "blur(10px)",
+                "linear-gradient(135deg, rgba(0, 170, 255, 0.2) 0%, rgba(0, 170, 255, 0.08) 100%)",
+              border: "2px solid rgba(0, 170, 255, 0.3)",
+              backdropFilter: "blur(12px)",
               transition: "all 0.3s ease",
+              boxShadow: "0 4px 20px rgba(0, 170, 255, 0.1)",
               "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: "0 8px 25px rgba(69, 183, 209, 0.15)",
+                transform: "translateY(-4px) scale(1.02)",
+                boxShadow: "0 12px 35px rgba(0, 170, 255, 0.25)",
+                borderColor: "rgba(0, 170, 255, 0.5)",
               },
             }}
           >
@@ -341,16 +350,17 @@ const HistoryPage: React.FC = observer(() => {
               <Typography
                 variant="h4"
                 sx={{
-                  fontWeight: "bold",
-                  background: "linear-gradient(45deg, #45b7d1, #64b5f6)",
+                  fontWeight: 900,
+                  background: "linear-gradient(45deg, #00aaff 0%, #44aaff 100%)",
                   WebkitBackgroundClip: "text",
                   backgroundClip: "text",
                   color: "transparent",
+                  textShadow: "0 0 20px rgba(0, 170, 255, 0.3)",
                 }}
               >
                 {stats.totalRatingsReceived}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                 Ratings Received
               </Typography>
             </CardContent>
@@ -360,13 +370,15 @@ const HistoryPage: React.FC = observer(() => {
           <Card
             sx={{
               background:
-                "linear-gradient(135deg, rgba(249, 202, 36, 0.1) 0%, rgba(249, 202, 36, 0.05) 100%)",
-              border: "1px solid rgba(249, 202, 36, 0.2)",
-              backdropFilter: "blur(10px)",
+                "linear-gradient(135deg, rgba(255, 221, 0, 0.2) 0%, rgba(255, 221, 0, 0.08) 100%)",
+              border: "2px solid rgba(255, 221, 0, 0.3)",
+              backdropFilter: "blur(12px)",
               transition: "all 0.3s ease",
+              boxShadow: "0 4px 20px rgba(255, 221, 0, 0.1)",
               "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: "0 8px 25px rgba(249, 202, 36, 0.15)",
+                transform: "translateY(-4px) scale(1.02)",
+                boxShadow: "0 12px 35px rgba(255, 221, 0, 0.25)",
+                borderColor: "rgba(255, 221, 0, 0.5)",
               },
             }}
           >
@@ -374,16 +386,17 @@ const HistoryPage: React.FC = observer(() => {
               <Typography
                 variant="h5"
                 sx={{
-                  fontWeight: "bold",
-                  background: "linear-gradient(45deg, #f9ca24, #f39c12)",
+                  fontWeight: 900,
+                  background: "linear-gradient(45deg, #ffdd00 0%, #ffaa44 100%)",
                   WebkitBackgroundClip: "text",
                   backgroundClip: "text",
                   color: "transparent",
+                  textShadow: "0 0 20px rgba(255, 221, 0, 0.3)",
                 }}
               >
                 {stats.averageRatingReceived.toFixed(1)}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                 Avg Received
               </Typography>
             </CardContent>

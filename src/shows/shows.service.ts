@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { ChatGateway } from "../chat/chat.gateway";
 import { KarafunService } from "../karafun/karafun.service";
+import { KarafunSessionManager } from "../karafun/session-manager.service";
 import { Rating } from "../rating/entities/rating.entity";
 import { User } from "../user/entities/user.entity";
 import { Show } from "./entities/show.entity";
@@ -27,7 +28,8 @@ export class ShowsService {
     private readonly userRepository: Repository<User>,
     @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway: ChatGateway,
-    private readonly karafunService: KarafunService
+    private readonly karafunService: KarafunService,
+    private readonly karafunSessionManager: KarafunSessionManager
   ) {}
 
   private async getUsernameById(userId: number): Promise<string> {
@@ -641,6 +643,37 @@ export class ShowsService {
     return { affected: result.affected || 0 };
   }
 
+  async updateKarafunUrl(
+    showId: string,
+    karafunUrl: string
+  ): Promise<ShowInterface | undefined> {
+    const show = await this.showRepository.findOne({
+      where: { id: parseInt(showId), isValid: true },
+    });
+
+    if (!show) {
+      return undefined;
+    }
+
+    // Only allow Karafun URL updates for Karafun venues
+    if (show.venue !== "karafun") {
+      throw new Error("Karafun URL can only be set for Karafun venues");
+    }
+
+    show.karafunUrl = karafunUrl;
+    await this.showRepository.save(show);
+
+    // Start or restart a persistent Karafun session for this show
+    try {
+      await this.karafunSessionManager.startPersistentSession(showId, karafunUrl);
+    } catch (e) {
+      console.error(`Failed to start persistent Karafun session for show ${showId}:`, e);
+      // Non-fatal for updating the URL
+    }
+
+    return this.getShow(showId);
+  }
+
   async deleteShow(id: string): Promise<{ success: boolean; message: string }> {
     const numericId = parseInt(id);
     if (isNaN(numericId)) {
@@ -656,6 +689,13 @@ export class ShowsService {
 
       if (!show) {
         return { success: false, message: "Show not found" };
+      }
+
+      // Stop any persistent Karafun session for this show
+      try {
+        await this.karafunSessionManager.stopSession(id);
+      } catch (e) {
+        console.warn(`Failed to stop Karafun session for deleted show ${id}:`, e);
       }
 
       // Delete associated ratings first (if any)
@@ -684,6 +724,13 @@ export class ShowsService {
 
   async deleteAllShows(): Promise<{ affected: number }> {
     try {
+      // Stop all Karafun sessions
+      try {
+        await this.karafunSessionManager.stopAllSessions();
+      } catch (e) {
+        console.warn("Failed to stop all Karafun sessions during deleteAllShows:", e);
+      }
+
       // Delete all ratings first
       await this.ratingRepository.delete({});
 
@@ -738,128 +785,6 @@ export class ShowsService {
     };
   }
 
-  async updateKarafunUrl(
-    showId: string,
-    karafunUrl: string
-  ): Promise<ShowInterface | undefined> {
-    const show = await this.showRepository.findOne({
-      where: { id: parseInt(showId), isValid: true },
-    });
-
-    if (!show) {
-      return undefined;
-    }
-
-    // Only allow Karafun URL updates for Karafun venues
-    if (show.venue !== "karafun") {
-      throw new Error("Karafun URL can only be set for Karafun venues");
-    }
-
-    show.karafunUrl = karafunUrl;
-    await this.showRepository.save(show);
-
-    return this.getShow(showId);
-  }
-
-  async getKarafunQueue(showId: string): Promise<any> {
-    const show = await this.showRepository.findOne({
-      where: { id: parseInt(showId), isValid: true },
-    });
-
-    if (!show) {
-      throw new Error("Show not found");
-    }
-
-    if (show.venue !== "karafun") {
-      throw new Error("Karafun queue is only available for Karafun shows");
-    }
-
-    // Check if we have cached data and if it's still fresh (less than 5 minutes old)
-    const cacheMaxAge = 5 * 60 * 1000; // 5 minutes in milliseconds
-    const now = new Date();
-
-    if (
-      show.karafunCachedData &&
-      show.karafunLastParsed &&
-      now.getTime() - show.karafunLastParsed.getTime() < cacheMaxAge
-    ) {
-      console.log(
-        `🎵 Using cached Karafun data for show ${showId} (age: ${Math.round((now.getTime() - show.karafunLastParsed.getTime()) / 1000)}s)`
-      );
-      return show.karafunCachedData;
-    }
-
-    // Cache is stale or doesn't exist, fetch fresh data
-    let karafunData;
-
-    try {
-      if (!show.karafunUrl) {
-        // For testing purposes, use hardcoded URL
-        const testUrl = "https://www.karafun.com/karaokebar/080601";
-        console.log("🧪 Using test URL for Karafun parsing:", testUrl);
-        karafunData = await this.karafunService.parseQueueFromUrl(testUrl);
-      } else {
-        karafunData = await this.karafunService.parseQueueFromUrl(
-          show.karafunUrl
-        );
-      }
-
-      // Only update cache if parsing was successful and returned valid data
-      if (karafunData && (karafunData.singers || karafunData.songEntries)) {
-        show.karafunCachedData = karafunData;
-        show.karafunLastParsed = now;
-        await this.showRepository.save(show);
-
-        // Always broadcast the updated data to all clients in the show
-        this.chatGateway.server
-          .to(`show_${showId}`)
-          .emit("karafunQueueUpdated", {
-            showId: parseInt(showId),
-            karafunData: karafunData,
-          });
-      } else {
-        console.log(
-          `⚠️ Parsing returned empty data for show ${showId}, not updating cache`
-        );
-
-        // If we have cached data but parsing failed, return cached data
-        if (show.karafunCachedData) {
-          console.log(
-            `🔄 Returning stale cached data for show ${showId} due to parsing failure`
-          );
-          return show.karafunCachedData;
-        }
-      }
-    } catch (error) {
-      console.error(`❌ Karafun parsing failed for show ${showId}:`, error);
-
-      // If parsing fails but we have cached data, return it even if stale
-      if (show.karafunCachedData) {
-        console.log(
-          `🔄 Returning stale cached data for show ${showId} due to parsing error`
-        );
-        return show.karafunCachedData;
-      }
-
-      // No cached data and parsing failed - return empty structure
-      karafunData = {
-        singers: [],
-        songEntries: [],
-        sessionId: null,
-        lastUpdated: new Date().toISOString(),
-        pageState: "error",
-        stateMessage: "Failed to parse Karafun queue",
-        hasCurrentPerformer: false,
-      };
-    }
-
-    return karafunData;
-  }
-
-  /**
-   * Force refresh Karafun queue data for a show and broadcast to all clients
-   * This method bypasses cache and always fetches fresh data
-   */
   async refreshKarafunQueue(showId: string): Promise<any> {
     const show = await this.showRepository.findOne({
       where: { id: parseInt(showId), isValid: true },

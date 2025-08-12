@@ -194,23 +194,24 @@ const CurrentPerformance: React.FC<CurrentPerformanceProps> = observer(
 
     if (!show) return null;
 
-    // Generate consistent colors for usernames (same as HistoryPage)
+    // Generate consistent colors for usernames with more vibrant colors
     const getUserColor = (username: string) => {
       const colors = [
-        "#ff6b6b",
-        "#4ecdc4",
-        "#45b7d1",
-        "#f9ca24",
-        "#6c5ce7",
-        "#a29bfe",
-        "#fd79a8",
-        "#00b894",
-        "#e17055",
-        "#74b9ff",
-        "#55a3ff",
-        "#26de81",
-        "#fc5c65",
-        "#fed330",
+        "#ff6b6b", // Vibrant coral
+        "#4ecdc4", // Electric turquoise  
+        "#00aaff", // Electric blue
+        "#ffdd00", // Bright yellow
+        "#00ff88", // Electric green
+        "#ff44aa", // Hot pink
+        "#aa44ff", // Purple
+        "#ff8800", // Orange
+        "#44ffaa", // Mint green
+        "#ff4488", // Pink red
+        "#88aaff", // Light blue
+        "#aaff44", // Lime green
+        "#ff4444", // Bright red
+        "#44aaff", // Sky blue
+        "#ffaa44", // Gold
       ];
 
       let hash = 0;

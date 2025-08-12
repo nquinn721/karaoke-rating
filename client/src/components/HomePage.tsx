@@ -1,4 +1,4 @@
-import { Add as AddIcon, Mic as MicIcon } from "@mui/icons-material";
+import { Add as AddIcon, Mic as MicIcon, QrCodeScanner as QrCodeScannerIcon } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import { useKeyboardAvoidance } from "../hooks/useKeyboardAvoidance";
 import { rootStore } from "../stores/RootStore";
 import { ChangeUsernameModal } from "./ChangeUsernameModal";
+import QRScanner from "./QRScanner";
 import UserMenu from "./UserMenu";
 
 const HomePage: React.FC = observer(() => {
@@ -35,6 +36,8 @@ const HomePage: React.FC = observer(() => {
   const [newShowVenue, setNewShowVenue] = useState<
     "karafun" | "excess" | "dj steve"
   >("karafun");
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [karafunUrl, setKarafunUrl] = useState(""); // Store the scanned or default URL
   const [changeUsernameModalOpen, setChangeUsernameModalOpen] = useState(false);
   const { dialogStyles } = useKeyboardAvoidance();
 
@@ -57,12 +60,55 @@ const HomePage: React.FC = observer(() => {
           newShowName.trim(),
           newShowVenue
         );
+        
+        // After creating the show, if it's a Karafun show and we have a URL, parse the queue
+        if (newShowVenue === "karafun" && (karafunUrl || true)) {
+          const urlToUse = karafunUrl || "https://www.karafun.com/080601/"; // Default test URL
+          try {
+            await rootStore.karafunStore.parseQueue(urlToUse, newShow.id);
+          } catch (karafunError) {
+            console.error("Failed to parse Karafun queue:", karafunError);
+            // Continue anyway, show was created successfully
+          }
+        }
+        
         setAddModalOpen(false);
         setNewShowName("");
+        setKarafunUrl("");
         setNewShowVenue("karafun");
+        setShowQRScanner(false);
         navigate(`/show/${newShow.id}`);
       } catch (error) {
         console.error("Failed to create show:", error);
+      }
+    }
+  };
+
+  const handleQRScan = async (qrData: string) => {
+    try {
+      // For Karafun QR codes, store the URL and close QR scanner
+      if (newShowVenue === "karafun" && qrData.includes("karafun")) {
+        setKarafunUrl(qrData);
+        setShowQRScanner(false);
+        return;
+      }
+
+      // For non-Karafun QR codes, try to join existing show
+      let showId = qrData;
+      if (qrData.includes("/show/")) {
+        const matches = qrData.match(/\/show\/([^\/\?]+)/);
+        showId = matches ? matches[1] : qrData;
+      }
+
+      await handleJoinShow(showId);
+      setAddModalOpen(false);
+      setShowQRScanner(false);
+    } catch (error) {
+      console.error("Failed to process QR code:", error);
+      // For Karafun, still store the URL even if it couldn't be validated
+      if (newShowVenue === "karafun") {
+        setKarafunUrl(qrData);
+        setShowQRScanner(false);
       }
     }
   };
@@ -348,18 +394,78 @@ const HomePage: React.FC = observer(() => {
               sx={{ mb: 2 }}
               autoFocus
             />
-            <FormControl fullWidth>
+            <FormControl fullWidth sx={{ mb: newShowVenue === "karafun" ? 2 : 0 }}>
               <InputLabel>Venue</InputLabel>
               <Select
                 value={newShowVenue}
                 label="Venue"
-                onChange={(e) => setNewShowVenue(e.target.value as any)}
+                onChange={(e) => {
+                  const newVenue = e.target.value as any;
+                  setNewShowVenue(newVenue);
+                  // Reset QR scanner and Karafun URL when changing venue
+                  if (newVenue !== "karafun") {
+                    setShowQRScanner(false);
+                    setKarafunUrl("");
+                  }
+                }}
               >
                 <MenuItem value="karafun">KaraFun</MenuItem>
                 <MenuItem value="excess">Excess</MenuItem>
                 <MenuItem value="dj steve">DJ Steve</MenuItem>
               </Select>
             </FormControl>
+
+            {/* Karafun-specific URL input and QR scanner */}
+            {newShowVenue === "karafun" && (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, color: "primary.main" }}>
+                  Karafun Queue URL
+                </Typography>
+                
+                {showQRScanner ? (
+                  <Box sx={{ textAlign: "center" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ mb: 2, color: "text.secondary" }}
+                    >
+                      Scan the QR code from your Karafun session
+                    </Typography>
+                    <QRScanner onScan={handleQRScan} />
+                    <Button
+                      onClick={() => setShowQRScanner(false)}
+                      sx={{ mt: 2 }}
+                    >
+                      Cancel Scan
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box>
+                    <TextField
+                      fullWidth
+                      label="Karafun Queue URL"
+                      value={karafunUrl}
+                      onChange={(e) => setKarafunUrl(e.target.value)}
+                      placeholder="https://www.karafun.com/..."
+                      sx={{ mb: 2 }}
+                      helperText={
+                        !karafunUrl 
+                          ? "Leave blank to use default test URL (https://www.karafun.com/080601/)" 
+                          : ""
+                      }
+                    />
+                    <Button
+                      variant="outlined"
+                      startIcon={<QrCodeScannerIcon />}
+                      onClick={() => setShowQRScanner(true)}
+                      fullWidth
+                      sx={{ mb: 2 }}
+                    >
+                      Scan QR Code for URL
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>

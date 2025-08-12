@@ -1,5 +1,4 @@
 import {
-  Add as AddIcon,
   Group as GroupIcon,
   Home as HomeIcon,
   MusicNote as MusicNoteIcon,
@@ -23,7 +22,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from "@mui/material";
 import { observer } from "mobx-react-lite";
@@ -35,9 +33,7 @@ import { rootStore } from "../stores/RootStore";
 const AdminPage: React.FC = observer(() => {
   const navigate = useNavigate();
   const { showsStore, chatStore, feedbackStore } = rootStore;
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [newShowName, setNewShowName] = useState("");
-  const newShowVenue: "karafun" | "excess" | "dj steve" = "karafun";
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [showToDelete, setShowToDelete] = useState<{
     id: string;
@@ -88,18 +84,6 @@ const AdminPage: React.FC = observer(() => {
       totalRatings,
     });
   }, [chatStore.participantsByShow, showsStore.shows]);
-
-  const handleCreateShow = async () => {
-    if (newShowName.trim()) {
-      try {
-        await showsStore.createShow(newShowName.trim(), newShowVenue);
-        setNewShowName("");
-        setDialogOpen(false);
-      } catch (error) {
-        console.error("Failed to create show:", error);
-      }
-    }
-  };
 
   const handleDeleteClick = (showId: string, showName: string) => {
     setShowToDelete({ id: showId, name: showName });
@@ -344,23 +328,6 @@ const AdminPage: React.FC = observer(() => {
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             Show Management
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setDialogOpen(true)}
-            sx={{
-              borderRadius: 2,
-              background: "linear-gradient(135deg, #6c5ce7, #a29bfe)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #5f4fcf, #8b7ff7)",
-                transform: "translateY(-1px)",
-                boxShadow: "0 4px 12px rgba(108, 92, 231, 0.3)",
-              },
-              transition: "all 0.2s ease",
-            }}
-          >
-            New Show
-          </Button>
         </Box>
 
         <TableContainer>
@@ -614,67 +581,6 @@ const AdminPage: React.FC = observer(() => {
           </Table>
         </TableContainer>
       </Paper>
-
-      {/* Create Show Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => {
-          setDialogOpen(false);
-          setNewShowName("");
-        }}
-        maxWidth="sm"
-        fullWidth
-        sx={dialogStyles}
-        PaperProps={{
-          sx: {
-            background: "rgba(30,30,30,0.95)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 3,
-          },
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 600 }}>Create New Show</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            label="Show Name"
-            value={newShowName}
-            onChange={(e) => setNewShowName(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === "Enter") {
-                handleCreateShow();
-              }
-            }}
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 1 }}>
-          <Button
-            onClick={() => {
-              setDialogOpen(false);
-              setNewShowName("");
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleCreateShow}
-            disabled={!newShowName.trim()}
-            sx={{
-              borderRadius: 2,
-              background: "linear-gradient(135deg, #6c5ce7, #a29bfe)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #5f4fcf, #8b7ff7)",
-              },
-            }}
-          >
-            Create
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog

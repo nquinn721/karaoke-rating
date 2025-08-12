@@ -91,16 +91,16 @@ const KarafunAccordion: React.FC<KarafunAccordionProps> = observer(
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
       }
       const colors = [
-        "#e74c3c",
-        "#3498db",
-        "#2ecc71",
-        "#f39c12",
-        "#9b59b6",
-        "#1abc9c",
-        "#e67e22",
-        "#34495e",
-        "#e91e63",
-        "#00bcd4",
+        "#ff6b6b", // Vibrant coral
+        "#4ecdc4", // Electric turquoise  
+        "#00aaff", // Electric blue
+        "#ffdd00", // Bright yellow
+        "#00ff88", // Electric green
+        "#ff44aa", // Hot pink
+        "#aa44ff", // Purple
+        "#ff8800", // Orange
+        "#44ffaa", // Mint green
+        "#ff4488", // Pink red
       ];
       return colors[Math.abs(hash) % colors.length];
     };
