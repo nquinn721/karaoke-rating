@@ -27,7 +27,7 @@ export class KarafunStore {
   stateMessage: string | null = null;
   hasCurrentPerformer: boolean = false;
   isAutoPolling: boolean = false;
-  private pollingInterval: NodeJS.Timeout | null = null;
+  private pollingInterval: ReturnType<typeof setInterval> | null = null;
 
   private baseAPI: BaseAPIStore;
   private socket: Socket | null = null;

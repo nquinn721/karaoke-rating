@@ -1,4 +1,8 @@
-import { Add as AddIcon, Mic as MicIcon, QrCodeScanner as QrCodeScannerIcon } from "@mui/icons-material";
+import {
+  Add as AddIcon,
+  Mic as MicIcon,
+  QrCodeScanner as QrCodeScannerIcon,
+} from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -60,7 +64,7 @@ const HomePage: React.FC = observer(() => {
           newShowName.trim(),
           newShowVenue
         );
-        
+
         // After creating the show, if it's a Karafun show and we have a URL, parse the queue
         if (newShowVenue === "karafun" && (karafunUrl || true)) {
           const urlToUse = karafunUrl || "https://www.karafun.com/080601/"; // Default test URL
@@ -71,7 +75,7 @@ const HomePage: React.FC = observer(() => {
             // Continue anyway, show was created successfully
           }
         }
-        
+
         setAddModalOpen(false);
         setNewShowName("");
         setKarafunUrl("");
@@ -394,7 +398,10 @@ const HomePage: React.FC = observer(() => {
               sx={{ mb: 2 }}
               autoFocus
             />
-            <FormControl fullWidth sx={{ mb: newShowVenue === "karafun" ? 2 : 0 }}>
+            <FormControl
+              fullWidth
+              sx={{ mb: newShowVenue === "karafun" ? 2 : 0 }}
+            >
               <InputLabel>Venue</InputLabel>
               <Select
                 value={newShowVenue}
@@ -418,10 +425,13 @@ const HomePage: React.FC = observer(() => {
             {/* Karafun-specific URL input and QR scanner */}
             {newShowVenue === "karafun" && (
               <Box>
-                <Typography variant="subtitle2" sx={{ mb: 2, color: "primary.main" }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ mb: 2, color: "primary.main" }}
+                >
                   Karafun Queue URL
                 </Typography>
-                
+
                 {showQRScanner ? (
                   <Box sx={{ textAlign: "center" }}>
                     <Typography
@@ -448,8 +458,8 @@ const HomePage: React.FC = observer(() => {
                       placeholder="https://www.karafun.com/..."
                       sx={{ mb: 2 }}
                       helperText={
-                        !karafunUrl 
-                          ? "Leave blank to use default test URL (https://www.karafun.com/080601/)" 
+                        !karafunUrl
+                          ? "Leave blank to use default test URL (https://www.karafun.com/080601/)"
                           : ""
                       }
                     />

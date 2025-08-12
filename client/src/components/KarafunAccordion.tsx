@@ -92,7 +92,7 @@ const KarafunAccordion: React.FC<KarafunAccordionProps> = observer(
       }
       const colors = [
         "#ff6b6b", // Vibrant coral
-        "#4ecdc4", // Electric turquoise  
+        "#4ecdc4", // Electric turquoise
         "#00aaff", // Electric blue
         "#ffdd00", // Bright yellow
         "#00ff88", // Electric green
