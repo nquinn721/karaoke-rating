@@ -797,6 +797,64 @@ export class ShowsService {
     };
   }
 
+  async getKarafunQueue(showId: string): Promise<any> {
+    const show = await this.showRepository.findOne({
+      where: { id: parseInt(showId), isValid: true },
+    });
+
+    if (!show) {
+      throw new Error("Show not found");
+    }
+
+    if (show.venue !== "karafun") {
+      throw new Error(
+        "Karafun queue data is only available for Karafun shows"
+      );
+    }
+
+    // Return cached data if available and recent (within last 5 minutes)
+    if (show.karafunCachedData && show.karafunLastParsed) {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (show.karafunLastParsed > fiveMinutesAgo) {
+        console.log(
+          `📋 Returning cached Karafun queue data for show ${showId}`
+        );
+        return show.karafunCachedData;
+      }
+    }
+
+    if (!show.karafunUrl) {
+      throw new Error("No Karafun URL set for this show");
+    }
+
+    console.log(
+      `🔄 Fetching fresh Karafun queue data for show ${showId} from ${show.karafunUrl}`
+    );
+
+    try {
+      const karafunData = await this.karafunService.parseQueueFromUrl(
+        show.karafunUrl
+      );
+
+      if (karafunData && (karafunData.singers || karafunData.songEntries)) {
+        show.karafunCachedData = karafunData;
+        show.karafunLastParsed = new Date();
+        await this.showRepository.save(show);
+
+        console.log(
+          `💾 Cached fresh Karafun data for show ${showId} with ${karafunData.singers?.length || 0} singers`
+        );
+
+        return karafunData;
+      } else {
+        throw new Error("Parsed data was empty or invalid");
+      }
+    } catch (error) {
+      console.error(`❌ Karafun queue fetch failed for show ${showId}:`, error);
+      throw error;
+    }
+  }
+
   async refreshKarafunQueue(showId: string): Promise<any> {
     const show = await this.showRepository.findOne({
       where: { id: parseInt(showId), isValid: true },
